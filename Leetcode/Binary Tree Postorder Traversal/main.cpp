@@ -55,3 +55,23 @@ public:
         return ans;
     }
 };
+
+
+void postorderTraversal(TreeNode* root) {
+    stack<TreeNode*> s, s2;
+    while (root != NULL || !s.empty()) {
+        if (root != NULL) {
+            s2.push(root->val);
+            s.push(root);
+            root = root->right;
+        } else {
+            root = s.top();
+            s.pop();
+            root = root->left;
+        }
+    }
+    while (!s2.empty()) {
+        cout << s2.top() << ' ';
+        s2.pop();
+    }
+}
