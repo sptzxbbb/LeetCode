@@ -3,7 +3,7 @@ public:
     int findMin(vector<int>& nums) {
         int low = 0, high = nums.size() - 1;
         int ans = binary_search(nums, low, high);
-        return nums[ans];
+        return ans;
     }
 
     int binary_search(vector<int>& nums, int low, int high) {
