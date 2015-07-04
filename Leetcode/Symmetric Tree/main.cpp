@@ -11,12 +11,12 @@ class Solution {
 public:
   bool isSymmetric(TreeNode *root) {
     if (!root) return true;
-    
+
     travel1(root->left);
     travel2(root->right);
-    
+
     if (left.size() != right.size()) return false;
-    
+
     for (int i = 0; i < left.size(); ++i) {
       if (left[i] && !right[i]) return false;
       if (!left[i] && right[i]) return false;
