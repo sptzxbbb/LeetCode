@@ -16,7 +16,7 @@ public:
         if (root->val < p->val && root->val < q->val) {
             return lowestCommonAncestor(root->right, p, q);
         }
-        return root;
+        return roo4t;
     }
 
     TreeNode* lowestCommonAncestor(TreeNode* root, TreeNode* p, TreeNode* q) {
