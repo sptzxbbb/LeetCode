@@ -25,7 +25,6 @@ public:
         }
         return;
     }
-
 private:
     vector<string> ans;
 };
