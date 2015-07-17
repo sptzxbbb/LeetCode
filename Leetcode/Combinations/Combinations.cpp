@@ -14,7 +14,7 @@ public:
         }
         for (int i = min_num; i <= n && i + k - 1 <= n; i++) {
             v.push_back(i);
-            dfs(ans, v, k - 1, min_num + 1, n);
+            dfs(ans, v, k - 1, i + 1, n);
             v.pop_back();
         }
 
