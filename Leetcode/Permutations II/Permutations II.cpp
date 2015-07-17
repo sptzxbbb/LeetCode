@@ -11,7 +11,7 @@ public:
         delete[] check;
         return ans;
     }
-    void getPermu(vector<int>& nums, vector<int>& a, int position, int n, bool* check) {
+    void getPermu(vector<int>& nums, vector<int>& a, int 2position, int n, bool* check) {
         if (position == n) {
             ans.push_back(a);
             return;
