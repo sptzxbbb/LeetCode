@@ -40,3 +40,30 @@ public:
         }
     }
 };
+
+class Solution {
+public:
+    TreeNode* sortedListToBST(ListNode* head) {
+        int length = 0;
+        ListNode *cur = head;
+        while (cur) {
+            ++length;
+            cur = cur->next;
+        }
+        return generate(head, 0, length - 1);
+    }
+    TreeNode* generate(ListNode *& head, int start, int end) {
+        if (start > end) {
+            return NULL;
+        } else {
+            int mid = (start + end) / 2;
+            TreeNode *left = generate(head, start, mid - 1);
+            TreeNode *root = new TreeNode(head->val);
+            head = head->next;
+            TreeNode *right = generate(head, mid + 1, end);
+            root->left = left;
+            root->right = right;
+            return root;
+        }
+    }
+};
