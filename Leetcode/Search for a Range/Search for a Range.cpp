@@ -1,27 +1,36 @@
-bool cmp(int a, int b) {
-    return a > b;
-}
-
 class Solution {
 public:
-    int findKthLargest(vector<int>& nums, int k) {
-        vector<int> min_heap;
-        for (int i = 0; i < k; i++) {
-            min_heap.push_back(nums[i]);
-        }
-        make_heap(min_heap.begin(), min_heap.end(), cmp);
-        int size = nums.size();
-        int min = min_heap.front();
-        for (int i = k; i < size; i++) {
-            if (nums[i] > min) {
-                pop_heap(min_heap.begin(), min_heap.end(), cmp);
-                min_heap.pop_back();
-                min_heap.push_back(nums[i]);
-                push_heap(min_heap.begin(), min_heap.end(), cmp);
-                min = min_heap.front();
-            }
-        }
-        return min;
-    }
+    vector<int> searchRange(vector<int>& nums, int target) {
+        int start = nums.size(), end = -1;
+        binarySearch(nums, 0, nums.size() - 1, start, end, target);
 
+        vector<int> ans;
+        if (nums.size() == start) {
+            start = -1;
+        }
+        ans.push_back(start);
+        ans.push_back(end);
+        return ans;
+    }
+    void binarySearch(vector<int>& nums, int left, int right, int& start, int& end, int target) {
+        if (left > right) {
+            return;
+        }
+        int mid = (left + right) / 2;
+        if (nums[mid] < target) {
+            binarySearch(nums, mid + 1, right, start, end, target);
+        } else if (nums[mid] > target) {
+            binarySearch(nums, left, mid - 1, start, end, target);
+        } else {
+            if (mid < start) {
+                start = mid;
+            }
+            if (mid > end) {
+                end = mid;
+            }
+            binarySearch(nums, mid + 1, right, start, end, target);
+            binarySearch(nums, left, mid - 1, start, end, target);
+        }
+        return;
+    }
 };
