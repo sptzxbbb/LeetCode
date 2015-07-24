@@ -1,7 +1,7 @@
 class Solution {
 public:
     vector<int> twoSum(vector<int>& nums, int target) {
-        map<int, int> value;
+        unordered_map<int, int> value;
         vector<int> result;
         int size = nums.size();
         for (int i = 0; i < size; i++) {
@@ -9,7 +9,7 @@ public:
         }
         for (int i = 0; i < size; i++) {
             int k = target - nums[i];
-            map<int, int>::iterator it;
+            unordered_map<int, int>::iterator it;
             it = value.find(k);
             if (it != value.end() && it->second != i) {
                 result.push_back(i + 1);
@@ -20,4 +20,5 @@ public:
         return result;
     }
 };
+
 
