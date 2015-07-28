@@ -9,8 +9,7 @@ public:
             if (0 == i) {
                 lowestPrice[i] = prices[i];
             } else {
-                lowestPrice[i] = prices[i] >= lowestPrice[i - 1] ?
-                    lowestPrice[i - 1] : prices[i];
+                lowestPrice[i] = prices[i] >= lowestPrice[i - 1] ? lowestPrice[i - 1] : prices[i];
             }
             profit = max(profit, prices[i] - lowestPrice[i]);
         }
