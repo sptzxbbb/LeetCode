@@ -1,71 +1,39 @@
-#include <vector>
-#include <iostream>
-using namespace std;
-
-typedef enum {
-    lowest,
-    middle,
-    highest
-} my_price;
-
 class Solution {
 public:
     int maxProfit(vector<int>& prices) {
-        int size = prices.size(), profit = 0, value;
-        my_price trend[size];
-        bool hold = false;
-        // no transaction available
-        if (size <= 1) {
+        int size = prices.size();
+        vector<int> _prices;
+        // remove adjacent duplicates
+        for (int i = 0; i < size; i++) {
+            if (0 == i || prices[i] != prices[i - 1]) {
+                _prices.push_back(prices[i]);
+            }
+        }
+        size = _prices.size();
+        vector<int> _min, _max;
+        int profit = 0;
+        if (0 == size || 1 == size) {
             return profit;
         }
-        // deal with the beginning and the end
-        if (size > 1) {
-            if (prices[1] > prices[0]) {
-                trend[0] = lowest;
-            } else if (prices[1] < prices[0]) {
-                trend[0] = highest;
-            } else {
-                trend[0] = middle;
-            }
-            if (prices[size - 1] > prices[size - 2]) {
-                trend[size - 1] = highest;
-            } else if (prices[size - 1] < prices[size - 2]) {
-                // suppose to be a day with lowest price,but we can't sell it in the futrue, so set it middle
-                trend[size - 1] = middle;
-            } else {
-                trend[size - 1] = middle;
+        if (_prices[0] < _prices[1]) {
+            _min.push_back(_prices[0]);
+        }
+        for (int i = 1; i < size - 1; i++) {
+            if (_prices[i] > _prices[i + 1] && _prices[i] > _prices[i - 1]) {
+                _max.push_back(_prices[i]);
+            } else if (_prices[i] < _prices[i + 1] && _prices[i] < _prices[i - 1]) {
+                _min.push_back(_prices[i]);
             }
         }
+        if (_prices[size - 1] > _prices[size - 2]) {
+            _max.push_back(_prices[size - 1]);
+        } else {
+            _min.push_back(_prices[size - 1]);
+        }
+        size = min(_min.size(), _max.size());
         for (int i = 0; i < size; i++) {
-            // if it's a extermal point
-            if (i > 0 && i < size - 1) {
-                if (prices[i] == prices[i - 1] && prices[i] == prices[i + 1]) {
-                    trend[i] = middle;
-                } else if (prices[i] >= prices[i - 1] && prices[i] >= prices[i + 1]) {
-                    trend[i] = highest;
-                } else if (prices[i] <= prices[i - 1] && prices[i] <= prices[i + 1]) {
-                    trend[i] = lowest;
-                } else {
-                    trend[i] = middle;
-                }
-            }
-            // transaction
-            if (false == hold && lowest == trend[i]) {
-                hold = true;
-                value = prices[i];
-            } else if (true == hold && highest == trend[i]) {
-                hold = false;
-                profit += prices[i] - value;
-            }
+            profit += _max[i] - _min[i];
         }
         return profit;
     }
 };
-
-int main(int argc, char *argv[]) {
-    int a[]= {2,9,2,3,8,1,5,8,4,3,6,4,4};
-    vector<int> price(a, a + 13);
-    Solution k;
-    cout << k.maxProfit(price) << endl;
-    return 0;
-}
