@@ -16,7 +16,6 @@ public:
                 local[j] = max(global[j - 1] + max(diff, 0), local[j] + diff);
                 global[j] = max(global[j], local[j]);
             }
-
         }
         return global[k];
     }
