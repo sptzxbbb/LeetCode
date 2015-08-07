@@ -1,5 +1,5 @@
 class Solution {
-public:
+  public:
     vector<int> diffWaysToCompute(string input) {
         vector<int> res;
         int size = input.size();
@@ -12,17 +12,17 @@ public:
                 for (int j = 0; j < leftSize; j++) {
                     for (int k = 0; k < rightSize; k++) {
                         switch(input[i]) {
-                        case '+' :
-                            res.push_back(left[j] + right[k]);
-                            break;
-                        case '-' :
-                            res.push_back(left[j] - right[k]);
-                            break;
-                        case '*' :
-                            res.push_back(left[j] * right[k]);
-                            break;
-                        default:
-                            break;
+                            case '+':
+                                res.push_back(left[j] + right[k]);
+                                break;
+                            case '-':
+                                res.push_back(left[j] - right[k]);
+                                break;
+                            case '*':
+                                res.push_back(left[j] * right[k]);
+                                break;
+                            default:
+                                break;
                         }
                     }
                 }
