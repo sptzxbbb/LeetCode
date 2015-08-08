@@ -1,5 +1,5 @@
 class Solution {
-public:
+  public:
     int maxProfit(vector<int>& prices) {
         int size = prices.size();
         if (size < 2) {
