@@ -7,7 +7,6 @@
  *     TreeNode(int x) : val(x), left(NULL), right(NULL) {}
  * };
  */
-<<<<<<< HEAD
 enum direction {
     left_to_right,
     right_to_left
@@ -56,11 +55,5 @@ public:
             res.push_back(floor);
         }
         return res;
-=======
-class Solution {
-public:
-    vector<vector<int> > zigzagLevelOrder(TreeNode* root) {
-        
->>>>>>> 9d56d4d13e882843b1c206d72fd7aaa90d7c24e2
     }
 };
