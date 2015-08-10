@@ -11,7 +11,8 @@ public:
             maxNum = max(maxNum, nums[i]);
             minNum = min(minNum, nums[i]);
         }
-        int len = ceil((floor)(maxNum - minNum) / (floor)(size - 1));
+        //int len = ceil((floor)(maxNum - minNum) / (floor)(size - 1));
+        int len = (maxNum - minNum - 1) / (size - 1) + 1;
         vector<vector<int> > bucket((maxNum - minNum) / len + 1);
         for (int i = 0; i < size; i++) {
             int k = (nums[i] - minNum) / len;
@@ -24,14 +25,11 @@ public:
             }
         }
         int gap = 0;
-        int prev = -1;
+        int prev = 0;
         size = bucket.size();
         for (int i = 1; i < size; i++) {
             if (bucket[i].empty()) {
                 continue;
-            }
-            if (-1 == prev) {
-                prev = i;
             }
             gap = max(gap, bucket[i][0] - bucket[prev][1]);
             prev = i;
