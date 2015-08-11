@@ -40,10 +40,6 @@ public:
         int left = 0, right = 0, sum = nums[0], minL = size + 1;
         while (right < size) {
             while (sum < s && right < size) sum += nums[++right];
-            // while (sum >= s && left <= right) {
-            //     minL = min(minL, right - left + 1);
-            //     sum -= nums[left++];
-            // }
             if (sum >= s) {
                 minL = min(minL, right - left + 1);
                 sum -= nums[left++];
