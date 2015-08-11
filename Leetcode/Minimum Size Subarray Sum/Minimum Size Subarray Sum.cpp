@@ -2,57 +2,57 @@
 #include <vector>
 using namespace std;
 
-// // O(n)
-// class Solution1 {
-// public:
-//     int minSubArrayLen(int s, vector<int>& nums) {
-//         int left = 0, right = 0;
-//         int size = nums.size();
-//         if (0 == size) {
-//             return 0;
-//         }
-//         int sum = nums[0], minL = size + 1;
-//         do {
-//             if (sum < s) {
-//                 sum += nums[++right];
-//             } else {
-//                 sum -= nums[left++];
-//                 if (left > right) {
-//                     minL = 1;
-//                     break;
-//                 }
-//             }
-//             if (sum >= s) {
-//                 minL = min(minL, right - left + 1);
-//             }
-//         } while (!(right == size - 1 && (sum < s || left == size - 1)));
-//         return minL == size + 1 ? 0 : minL;
-//     }
-// };
-// // O(n)
-// class Solution2 {
-// public:
-//     int minSubArrayLen(int s, vector<int>& nums) {
-//         int size = nums.size();
-//         if (0 == size) {
-//             return 0;
-//         }
-//         int left = 0, right = 0, sum = nums[0], minL = size + 1;
-//         while (right < size) {
-//             while (sum < s && right < size) sum += nums[++right];
-//             // while (sum >= s && left <= right) {
-//             //     minL = min(minL, right - left + 1);
-//             //     sum -= nums[left++];
-//             // }
-//             if (sum >= s) {
-//                 minL = min(minL, right - left + 1);
-//                 sum -= nums[left++];
-//             }
+// O(n)
+class Solution1 {
+public:
+    int minSubArrayLen(int s, vector<int>& nums) {
+        int left = 0, right = 0;
+        int size = nums.size();
+        if (0 == size) {
+            return 0;
+        }
+        int sum = nums[0], minL = size + 1;
+        do {
+            if (sum < s) {
+                sum += nums[++right];
+            } else {
+                sum -= nums[left++];
+                if (left > right) {
+                    minL = 1;
+                    break;
+                }
+            }
+            if (sum >= s) {
+                minL = min(minL, right - left + 1);
+            }
+        } while (!(right == size - 1 && (sum < s || left == size - 1)));
+        return minL == size + 1 ? 0 : minL;
+    }
+};
+// O(n)
+class Solution2 {
+public:
+    int minSubArrayLen(int s, vector<int>& nums) {
+        int size = nums.size();
+        if (0 == size) {
+            return 0;
+        }
+        int left = 0, right = 0, sum = nums[0], minL = size + 1;
+        while (right < size) {
+            while (sum < s && right < size) sum += nums[++right];
+            // while (sum >= s && left <= right) {
+            //     minL = min(minL, right - left + 1);
+            //     sum -= nums[left++];
+            // }
+            if (sum >= s) {
+                minL = min(minL, right - left + 1);
+                sum -= nums[left++];
+            }
 
-//         }
-//         return minL == size + 1 ? 0 : minL;
-//     }
-// };
+        }
+        return minL == size + 1 ? 0 : minL;
+    }
+};
 
 // O(nlogn)
 class Solution {
