@@ -16,3 +16,22 @@ public:
         return j;
     }
 };
+
+
+
+
+class Solution {
+public:
+    // Newton's method
+    int mySqrt(int x) {
+        if (0 == x) {
+            return 0;
+        }
+        double pre = 0, cur = 1;
+        while (pre != cur) {
+            pre = cur;
+            cur = (cur + x / cur) / 2;
+        }
+        return (int)cur;
+    }
+};
