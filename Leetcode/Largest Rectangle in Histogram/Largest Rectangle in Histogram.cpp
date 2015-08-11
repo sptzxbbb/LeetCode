@@ -19,3 +19,25 @@ public:
         return maxArea;
     }
 };
+
+// O(n)
+class Solution {
+public:
+    int largestRectangleArea(vector<int>& height) {
+        stack<int> s;
+        height.push_back(0);
+        int sum = 0, size = height.size();
+        for (int i = 0; i < size; i++) {
+            if (s.empty() || height[i] > height[s.top()]) {
+                s.push(i);
+            } else {
+                int t = s.top();
+                s.pop();
+                int area = height[t] * (s.empty() ? i : i - s.top() - 1);
+                sum = max(sum, area);
+                --i;
+            }
+        }
+        return sum;
+    }
+};
