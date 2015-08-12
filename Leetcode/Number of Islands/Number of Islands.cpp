@@ -31,7 +31,7 @@ class Solution {
         }
         return num;
     }
-    void bfs(vector<vector<char> >& grid, int i, int j) {
+    void dfs(vector<vector<char> >& grid, int i, int j) {
         if (i < 0 || i >= grid.size() || j < 0 || j >= grid[0].size()) {
             return;
         }
