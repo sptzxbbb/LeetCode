@@ -1,8 +1,3 @@
-#include <iostream>
-#include <deque>
-#include "vector"
-using namespace std;
-
 class Solution {
 public:
     vector<int> maxSlidingWindow(vector<int>& nums, int k) {
@@ -28,11 +23,3 @@ public:
     }
 };
 
-int main(int argc, char *argv[])
-{
-    int a[] = {1, 3, 1, 2, 0, 5};
-    vector<int> v(&a[0], &a[5]);
-    Solution k;
-    k.maxSlidingWindow(v, 3);
-    return 0;
-}
