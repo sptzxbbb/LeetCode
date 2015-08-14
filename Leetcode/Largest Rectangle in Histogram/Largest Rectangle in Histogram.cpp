@@ -25,7 +25,7 @@ class Solution {
 public:
     int largestRectangleArea(vector<int>& height) {
         stack<int> s;
-        h.push_back(0);
+        height.push_back(0);
         int sum = 0, size = height.size();
         for (int i = 0; i < size; i++) {
             if (s.empty() || height[i] > height[s.top()]) {
