@@ -1,26 +1,40 @@
+// O(n^2) Solution
 class Solution {
 public:
     int maximalRectangle(vector<vector<char> >& matrix) {
         int maxArea = 0;
         int row = matrix.size();
+        if (0 == row) {
+            return maxArea;
+        }
+        vector<vector<int> > histogram = calHistogram(matrix);
         for (int i = 0; i < row; i++) {
-            vector<int> histogram = calHistogram(matrix, i);
-            int area = largestRectangleArea(histogram);
+            int area = largestRectangleArea(histogram[i]);
             maxArea = max(area, maxArea);
         }
         return maxArea;
     }
-    vector<int> calHistogram(vector<vector<char> >& matrix, int row) {
+    vector<vector<int> > calHistogram(vector<vector<char> >& matrix) {
+        int row = matrix.size();
         int col = matrix[0].size();
-        vector<int> height(col);
-        for (int i = 0; i < col; i++) {
-            int h = 0;
-            int _row = row;
-            while (_row >= 0 && matrix[_row][i] == '1') {
-                --_row;
-                ++h;
+        vector<vector<int> > height(row, vector<int>(col, 0));
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
+                if (i == 0) {
+                    if (matrix[i][j] == '1') {
+                        height[i][j] = 1;
+                    }
+                } else {
+                    if (matrix[i][j] == '1') {
+                        if (height[i - 1][j] != 0) {
+                            height[i][j] = height[i - 1][j] + 1;
+                        } else {
+                            height[i][j] = 1;
+                        }
+                    }
+
+                }
             }
-            height[i] = h;
         }
         return height;
     }
