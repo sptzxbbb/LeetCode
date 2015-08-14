@@ -28,7 +28,7 @@ class Solution {
                         break;
                     default :
                         // not reached
-                        break;
+                        ;
                 }
             } else {
                 // operand
