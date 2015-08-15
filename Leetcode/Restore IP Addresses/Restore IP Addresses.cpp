@@ -17,7 +17,7 @@ public:
         int size = s.size();
         for (int i = pos; i < pos + 3 && i < size; i++) {
             string subIP = s.substr(pos, i - pos + 1);
-            if ( subIP[0] == '0' && subIP.size() > 1) {
+            if (subIP[0] == '0' && subIP.size() > 1) {
                 continue;
             }
             int k = atoi(subIP.c_str());
