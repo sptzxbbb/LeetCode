@@ -10,10 +10,6 @@ public:
             string s = "0";
             return s;
         }
-        // num1 is larget than num2 normally
-        if (num2.size() > num1.size()) {
-            swap(num1, num2);
-        }
         int size1 = num1.size(), size2 = num2.size();
         int len = size1 + size2;
         vector<int> digit(len, 0);
@@ -27,10 +23,6 @@ public:
             digit[i] += carry;
             carry = digit[i] / 10;
             digit[i] %= 10;
-        }
-        if (carry) {
-            vector<int>::iterator it = digit.begin();
-            digit.insert(it, carry);
         }
         string s;
         int i = 0;
