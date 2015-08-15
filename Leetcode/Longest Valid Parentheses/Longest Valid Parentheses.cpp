@@ -5,25 +5,20 @@ using namespace std;
 class Solution {
 public:
     int longestValidParentheses(string s) {
-        stack<pair<int, int>> stk;
+        stack<pair<int, char>> stk;
         int maxLen = 0, curLen = 0;
-        for (int i = 0; i < s.size(); i++) {
+        int size = s.size();
+        for (int i = 0; i < size; i++) {
             if (s[i] == '(') {
                 stk.push(make_pair(i, '('));
             } else {
-                // stk.top() == ')'
                 if (stk.empty() || stk.top().second == ')') {
                     stk.push(make_pair(i, ')'));
                 } else {
                     stk.pop();
-                    if (stk.empty()) {
-                        curLen = i + 1;
-                    } else {
-                        curLen = i - stk.top().first;
-                    }
+                    curLen = stk.empty() ? i + 1 : i - stk.top().first;
                     maxLen = max(maxLen, curLen);
                 }
-
             }
         }
         return maxLen;
