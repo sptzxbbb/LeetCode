@@ -12,6 +12,7 @@ public:
             }
         }
         int sum = candy[size - 1];
+        // adjust the candies
         for (int i = size - 2; i >= 0; i--) {
             if (ratings[i] > ratings[i + 1] && candy[i] <= candy[i + 1]) {
                 candy[i] = candy[i + 1] + 1;
