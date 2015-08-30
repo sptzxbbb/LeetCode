@@ -2,7 +2,7 @@
 #include <string>
 using namespace std;
 
-class Solution {
+class Solution1 {
 public:
     string longestPalindrome(string s) {
         int len = 1;
@@ -39,6 +39,33 @@ public:
             len = width;
             start = left - step;
         }
+    }
+};
+
+class Solution {
+public:
+    string longestPalindrome(string s) {
+        int size = s.size();
+        int start = 0, end = 0;
+        // vector results in TLD
+        //vector<vector<bool> > p(size, vector<bool>(size, false));
+        bool p[size][size];
+        for (int i = 0; i < size; i++) {
+            p[i][i] = true;
+            for (int j = 0; j < i; j++) {
+                if (i - 1 == j) {
+                    p[j][i] = (s[i] == s[j]);
+                } else {
+                    p[j][i] = p[j + 1][i - 1] && (s[i] == s[j]);
+                }
+                if (p[j][i] && (i - j) > (end - start)) {
+                    start = j;
+                    end = i;
+                }
+
+            }
+        }
+        return s.substr(start, end - start + 1);
     }
 };
 
