@@ -53,7 +53,6 @@ public:
             }
         }
         return (1 << (depth - 1)) + right;
-
     }
 
     bool getNode(TreeNode* root, int path, int depth) {
