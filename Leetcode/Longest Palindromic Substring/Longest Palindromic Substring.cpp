@@ -53,16 +53,11 @@ public:
         for (int i = 0; i < size; i++) {
             p[i][i] = true;
             for (int j = 0; j < i; j++) {
-                if (i - 1 == j) {
-                    p[j][i] = (s[i] == s[j]);
-                } else {
-                    p[j][i] = p[j + 1][i - 1] && (s[i] == s[j]);
-                }
+                p[j][i] = s[i] == s[j] && (p[j + 1][i - 1] || i == j + 1);
                 if (p[j][i] && (i - j) > (end - start)) {
                     start = j;
                     end = i;
                 }
-
             }
         }
         return s.substr(start, end - start + 1);
