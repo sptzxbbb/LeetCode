@@ -1,11 +1,3 @@
-#include <iostream>
-#include <vector>
-
-
-using namespace std;
-
-
-
 struct TreeNode {
     int val;
     TreeNode *left;
@@ -13,25 +5,25 @@ struct TreeNode {
     TreeNode(int x) : val(x), left(NULL), right(NULL) {}
 };
 
-// class Solution1 {
-// public:
-//     bool isValidBST(TreeNode* root) {
-//         valid(root, LONG_MIN, LONG_MAX);
-//     }
-//     bool valid(TreeNode* node, long MIN, long MAX) {
-//         if (node == NULL) {
-//             return true;
-//         }
-//         if (node->val > MIN &&
-//             node->val < MAX &&
-//             valid(node->left, MIN, node->val) &&
-//             valid(node->right, node->val, MAX)) {
-//             return true;
-//         } else {
-//             return false;
-//         }
-//     }
-// };
+class Solution1 {
+public:
+    bool isValidBST(TreeNode* root) {
+        valid(root, LONG_MIN, LONG_MAX);
+    }
+    bool valid(TreeNode* node, long MIN, long MAX) {
+        if (node == NULL) {
+            return true;
+        }
+        if (node->val > MIN &&
+            node->val < MAX &&
+            valid(node->left, MIN, node->val) &&
+            valid(node->right, node->val, MAX)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+};
 
 class Solution {
 public:
@@ -57,10 +49,3 @@ public:
     }
 };
 
-int main(int argc, char *argv[])
-{
-    TreeNode* root = NULL;
-    Solution k;
-    k.isValidBST(root);
-    return 0;
-}
