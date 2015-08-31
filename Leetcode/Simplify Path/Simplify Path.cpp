@@ -1,7 +1,7 @@
 #include <iostream>
-#include <list>
-#include <string>
 #include <vector>
+#include <string>
+#include <list>
 
 using namespace std;
 
@@ -19,57 +19,45 @@ class Solution {
                     dir.pop_back();
                 }
             } else {
-                dir.push_back(f[i] + "/");
+                dir.push_back(f[i]);
             }
         }
-
         list<string>::iterator it = dir.begin();
-        string ans = "/";
+        string ans;
         while (it != dir.end()) {
-            ans += (*it);
+            ans += "/" + (*it);
             ++it;
         }
-        if (ans.size() > 1) {
-            ans.pop_back();
+        if (ans.empty()) {
+            ans = "/";
         }
         return ans;
     }
 
     void extraFile(vector<string>& f, string path) {
         string file = "";
-        int i = 1, size = path.size();
+        int i = 0, size = path.size();
         while (i < size) {
-            if (path[i] != '/') {
+            while (i < size && path[i] == '/') {
+                ++i;
+            }
+            while (i < size && path[i] != '/') {
                 file += path[i];
                 ++i;
-            } else {
+            }
+            if (!file.empty()) {
                 f.push_back(file);
                 file = "";
-                while (i < size && path[i] == '/') {
-                    ++i;
-                }
             }
         }
+        return;
     }
 };
 
 int main(int argc, char *argv[])
 {
     Solution k;
-    string path = "/../";
-    cout << "Input : " << path << endl;
-    cout << "Output : " << k.simplifyPath(path) << endl;
-
-    path = "/a/./b/../../c/";
-    cout << "Input : " << path << endl;
-    cout << "Output : " << k.simplifyPath(path) << endl;
-
-    path = "/home//foo/";
-    cout << "Input : " << path << endl;
-    cout << "Output : " << k.simplifyPath(path) << endl;
-
-    path = "/home/shawn/../";
-    cout << "Input : " << path << endl;
+    string path = "/.../";
     cout << "Output : " << k.simplifyPath(path) << endl;
     return 0;
 }
