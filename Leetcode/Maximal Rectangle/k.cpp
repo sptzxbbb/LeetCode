@@ -32,7 +32,6 @@ public:
                             height[i][j] = 1;
                         }
                     }
-
                 }
             }
         }
