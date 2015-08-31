@@ -1,78 +1,52 @@
-
-
 struct node {
-    char c;
-    node *next[27];
-    node(char ch = 0 ) {
-        ch = c;
+    bool isWord;
+    node *next[26];
+    // Initialize a node
+    node() : isWord(false) {
         for (int i = 0; i < 27; i++) {
             next[i] = NULL;
         }
     }
 };
 
-
-
 class WordDictionary {
   public:
-
     WordDictionary() {
-        start = new node('.');
+        start = new node();
     }
     // Adds a word into the data structure.
     void addWord(string word) {
-        int size = word.size();
-        if (size == 0) {
-            return;
-        }
-        node *cur = start, *next;
-        for (int i = 0; i < size; i++) {
-            if (word[i] == '.') {
-                next = cur->next[26];
-            } else {
-                next = cur->next[word[i] - 'a'];
+        node* p = start;
+        for (auto a : word) {
+            int i = a - 'a';
+            if (!p->next[i]) {
+                p->next[i] = new node();
             }
-            if (next == NULL) {
-                next = new node(word[i]);
-            }
-            cur = next;
+            p = p->next[i];
         }
+        p->isWord = true;
         return;
     }
 
     // Returns if the word is in the data structure. A word could
     // contain the dot character '.' to represent any one letter.
     bool search(string word) {
-        return searchFirstLetter(start, word);
+        return searchWord(start, word, 0);
     }
 
-    bool searchFirstLetter(node* root, string subWord) {
-        char ch = subWord[0];
-        vector<node*> candidate;
-        if (ch == '.') {
-            for (int i = 0; i < 27; i++) {
-                if (root->next[i] != NULL) {
-                    candidate.push_back(root->next[i]);
+    bool searchWord(node* root, string& word, int pos) {
+        if (pos == word.size()) {
+            return root->isWord;
+        }
+        if (word[pos] == '.') {
+            for (auto a : root->next) {
+                if (a && searchWord(a, word, pos + 1)) {
+                    return true;
                 }
             }
-        } else {
-            if (root->next[ch - 'a'] != NULL) {
-                candidate.push_back(root->next[ch - 'a']);
-            }
-        }
-        if (candidate.empty()) {
             return false;
         } else {
-            if (subWord.size() == 1) {
-                return true;
-            } else {
-                // dfs
-                for (int i = 0; i < candidate.size(); i++) {
-                    if (searchFirstLetter(candidate[i], subWord.substr(1, subWord.size() - 1))) {
-                        return true;
-                    }
-                }
-            }
+            return root->next[word[pos] - 'a'] && searchWord(root->next[word[pos] - 'a'], word, pos + 1);
         }
     }
 
