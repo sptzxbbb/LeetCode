@@ -60,6 +60,7 @@ class Solution {
                 ++index;
                 if (width >= height[i]) {
                     area = height[i] * height[i];
+                    break;
                 }
             }
             maxArea = max(area, maxArea);
