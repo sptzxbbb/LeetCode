@@ -1,22 +1,34 @@
-class Solution {
-public:
-    int minCut(string s) {
-        int size = s.size();
+#include <iostream>
+#include <string>
+using namespace std;
 
-        bool p[size][size] = {false};
-        // D[i] = 区间[i, n]之间最小的cut数, n为字符串长度.
-        int D[size + 1];
-        for (int i = 0; i <= size; i++) {
-            D[i] = size - i;
+class Solution {
+  public:
+    int minCut(string s) {
+        int len = s.size();
+        int D[len + 1];
+        bool P[len][len] = {false};
+        //the worst case is cutting by each char
+        for(int i = 0; i <= len; i++) {
+            D[i] = len - i;
         }
-        for (int i = size - 1; i >= 0; --i) {
-            for (int j = i; j < size; ++j) {
-                if (s[i] == s[j] && (i == j + 1 || p[i + 1][j - 1])) {
-                    p[i][j] = true;
-                    D[i] = min(D[i], 1 + D[j + 1]);
+        for (int i = len - 1; i >= 0; i--) {
+            for (int j = i; j < len; j++) {
+                if (s[i] == s[j] && (j - i < 2 || P[i + 1][j - 1])) {
+                    P[i][j] = true;
+                    D[i] = min(D[i], D[j + 1] + 1);
                 }
             }
         }
         return D[0] - 1;
     }
 };
+
+int main(int argc, char *argv[])
+{
+    Solution k;
+    string s = "abbab";
+    cout << s << " : " << k.minCut(s) << endl;
+    return 0;
+}
+
