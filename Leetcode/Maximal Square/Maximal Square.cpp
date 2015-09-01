@@ -40,35 +40,30 @@ class Solution {
         int maxArea = 0;
         for (int i = 0; i < height.size(); i++) {
             bool exist = true;
-            // left square
-            if (i - height[i] - 1 >= 0) {
-                for (int j = i; j >= i - height[i] - 1; i--) {
-                    if (height[j] < height[i]) {
-                        exist = false;
-                        break;
-                    }
+            int left = i - height[i] + 1;
+            if (left < 0) {
+                left = 0;
+            }
+            int right = i + height[i] - 1;
+            if (right >= height.size()) {
+                right = height.size() - 1;
+            }
+            int index = left;
+            int width = 0;
+            int area = 0;
+            while (index <= right) {
+                if (height[index] >= height[i]) {
+                    ++width;
+                } else {
+                    width = 0;
                 }
-                if (exist) {
-                    int area = height[i] * height[i];
-                    maxArea = max(area, maxArea);
-                    continue;
+                ++index;
+                if (width >= height[i]) {
+                    area = height[i] * height[i];
                 }
             }
-            exist = true;
-            // right square
-            if (i + height[i] - 1 < height.size()) {
-                for (int j = i; j <= i + height[i] - 1; j++) {
-                    if (height[j] < height[i]) {
-                        exist = false;
-                        break;
-                    }
-                }
-                if (exist) {
-                    int area = height[i] * height[i];
-                    maxArea = max(area, maxArea);
-                }
-            }
+            maxArea = max(area, maxArea);
         }
         return maxArea;
     }
-}
+};
