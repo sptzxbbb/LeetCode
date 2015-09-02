@@ -21,7 +21,7 @@ public:
             if (area[i][0] == 1) {
                 maxSize = 1;
             }
-        }
+        }3
         for (int i = 1; i < row; i++) {
             for (int j = 1; j < col; j++) {
                 if (matrix[i][j] == '1') {
