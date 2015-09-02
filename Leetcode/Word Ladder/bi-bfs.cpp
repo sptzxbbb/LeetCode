@@ -8,7 +8,7 @@ class Solution {
         unordered_set<string> activeWords[3];
         // activeWords[startSet] is an unordered_set that includes all the nodes we are going to expand with BFS.
         // activeWords[endSet] is an unordered_set that includes all the ending nodes from the other side (or direction)
-        // activeWords[nextSet] is an unordered_set that saves the ending nodes of all the BFS expanded paths (from activeWords[startSet])
+        // activeWords[nextSet] is an unordered_set that saves the ending nodes of all the BFS expanded paths from activeWords[startSet]
         int startSet = 0, endSet = 1, nextSet = 2, curDepth = 2, i;
         char tempC, j;
         activeWords[startSet].insert(beginWord);
@@ -18,7 +18,6 @@ class Solution {
         // do BFS on startSet
         while(!activeWords[startSet].empty()) {
             for(auto it : activeWords[startSet]) {
-
                 for(i = 0; i < srcLen; ++i) {
                     for(tempC = it[i], j = 'a'; j <= 'z'; ++j) {
                         if(tempC == j) continue;
@@ -35,7 +34,6 @@ class Solution {
                     }// FOR j
                     it[i] = tempC;
                 } // FOR i
-
             } //FOR it
             ++curDepth;
             // swap the startSet and the nextSet
