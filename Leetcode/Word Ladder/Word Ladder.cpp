@@ -13,6 +13,7 @@ public:
         start.word = beginWord;
         q.push(start);
         visit.insert(beginWord);
+        // leetcode描述有错, wordDict中其实包含了beginWord和endWord. 但正确的写法时需要把endWord放进去wordDict.
         wordDict.insert(endWord);
         // bfs
         int res = 0;
