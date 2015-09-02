@@ -6,7 +6,6 @@ public:
         }
         //map<char, int> t_Count, s_Count;
         int t_Count[256] = {0}, s_Count[256] = {0};
-
         int charInT = 0;
         for (int i = 0; i < (int)t.size(); i++) {
             ++t_Count[t[i]];
