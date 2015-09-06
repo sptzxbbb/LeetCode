@@ -6,3 +6,6 @@ Call:
           1.1  start1 = 0, n = 1, start2 = 0, m = 3, k = 2
                nums2[1] = 2, nums1[0] = 3, 1 + 0 + 1 >= 2
       2.  getKth(nums1, 0, 1, nums2, 0, 3, 3)                       
+          2.1  start1 = 0, n = 1, start2 = 0, m = 3, k = 3
+               nums2[1] = 2, nums1[0] = 3, 2 < k
+               
