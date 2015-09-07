@@ -1,3 +1,0 @@
-Num Type       Disp Enb Addr               Hits What
-1   breakpoint keep y   <PENDING>          0    mai
-2   breakpoint keep y   0x0000000000400d67 0    in main(int, char**) of main.cpp:12
