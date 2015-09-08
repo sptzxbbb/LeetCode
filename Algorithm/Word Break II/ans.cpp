@@ -1,30 +1,45 @@
-  vector<string> wordBreak(string s, unordered_set<string> &dict) {
-         string result;
-         vector<string> solutions;
-         int len = s.size();
-         vector<bool> possible(len+1, true); // to record the search which has been executed once
-         GetAllSolution(0, s, dict, len, result, solutions, possible);
-         return solutions;
-     }
-
-     void GetAllSolution(int start, const string& s, const unordered_set<string> &dict, int len, string& result, vector<string>& solutions, vector<bool>& possible)
-     {
-         if (start == len)
-         {
-             solutions.push_back(result.substr(0, result.size()-1));//eliminate the last space
-             return;
-         }
-         for (int i = start; i< len; ++i)
-         {
-             string piece = s.substr(start, i - start + 1);
-             if (dict.find(piece) != dict.end() && possible[i+1]) // eliminate unnecessory search
-             {
-                 result.append(piece).append(" ");
-                 int beforeChange = solutions.size();
-                 GetAllSolution(i + 1, s, dict, len, result, solutions, possible);
-                 if(solutions.size() == beforeChange) // if no solution, set the possible to false
-                     possible[i+1] = false;
-                 result.resize(result.size() - piece.size()-1);
-             }
-         }
-     }
+class Solution {
+public:
+    bool isWordBreak(string& s, unordered_set<string>& wordDict) {
+        vector<bool> dp(s.length() + 1, false);
+        dp[0] = true;
+        int minlen = INT_MAX;
+        int maxlen = INT_MIN;
+        for (string word : wordDict) {
+            minlen = min(minlen, (int)word.length());
+            maxlen = max(maxlen, (int)word.length());
+        }
+        for (int i = 1; i <= s.length(); i++) {
+            for (int j = i - minlen; j >= max(0, i - maxlen); j--) {
+                if (dp[j] && wordDict.find(s.substr(j, i - j)) != wordDict.end()) {
+                    dp[i] = true;
+                    break;
+                }
+            }
+        }
+        return dp[s.length()];
+    }
+    void breakWords(string s, int idx, unordered_set<string>& wordDict, string& sol, vector<string>& res) {
+        if (idx == s.length()) {
+            sol.resize(sol.length() - 1);
+            res.push_back(sol);
+            return;
+        }
+        for (int i = idx; i < s.length(); i++) {
+            string word = s.substr(idx, i - idx + 1);
+            if (wordDict.find(word) != wordDict.end()) {
+                string tmp = sol;
+                sol += word + " ";
+                breakWords(s, i + 1, wordDict, sol, res);
+                sol = tmp;
+            }
+        }
+    }
+    vector<string> wordBreak(string s, unordered_set<string>& wordDict) {
+        string sol;
+        vector<string> res;
+        if (!isWordBreak(s, wordDict)) return res;
+        breakWords(s, 0, wordDict, sol, res);
+        return res;
+    }
+};
