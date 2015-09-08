@@ -3,31 +3,31 @@ public:
     int calculate(string s) {
         stack <int> nums, ops;
         int num = 0;
-        int rst = 0;
+        int result = 0;
         int sign = 1;
         for (char c : s) {
             if (isdigit(c)) {
                 num = num * 10 + c - '0';
             } else {
-                rst += sign * num;
+                result += sign * num;
                 num = 0;
                 if (c == '+') {
                     sign = 1;
                 } if (c == '-') {
                     sign = -1;
                 } if (c == '(') {
-                    nums.push(rst);
+                    nums.push(result);
                     ops.push(sign);
-                    rst = 0;
+                    result = 0;
                     sign = 1;
                 } else if (c == ')' && ops.size()) {
-                    rst = ops.top() * rst + nums.top();
+                    result = ops.top() * result + nums.top();
                     ops.pop();
                     nums.pop();
                 }
             }
         }
-        rst += sign * num;
-        return rst;
+        result += sign * num;
+        return result;
     }
 };
