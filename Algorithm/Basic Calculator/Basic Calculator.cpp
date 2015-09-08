@@ -16,6 +16,7 @@ public:
             } else if (s[index] == '+' || s[index] == '-' || s[index] == '(') {
                 sign.push(s[index++]);
             } else if (s[index] == ')') {
+                helper(operand, sign);
                 sign.pop();
                 ++index;
             } else {
@@ -23,41 +24,42 @@ public:
                 while (index < size && s[index] >= '0' && s[index] <= '9') {
                     num = num * 10 + s[index++] - '0';
                 }
-                if (!sign.empty() && sign.top() != '(') {
-                    int op = operand.top();
-                    operand.pop();
-                    if (sign.top() == '+') {
-                        operand.push(op + num);
-                    } else {
-                        operand.push(op - num);
-                    }
-                    sign.pop();
-                } else {
-                    operand.push(num);
-                }
+                operand.push(num);
+                helper(operand, sign);
             }
         }
-        while (!sign.empty()) {
+        helper(operand, sign);
+        return operand.top();
+    }
+
+    void helper(stack<int>& operand, stack<char>& sign) {
+        while (!sign.empty() && sign.top() != '(') {
             int op1, op2;
             op1 = operand.top();
             operand.pop();
             op2 = operand.top();
             operand.pop();
-            if (sign.top() == '+') {
+            char c = sign.top();
+            sign.pop();
+            if (!sign.empty() && sign.top() == '-') {
+                c = (c == '-' ? '+' : '-');
+            }
+            if (c == '+') {
                 operand.push(op2 + op1);
             } else {
                 operand.push(op2 - op1);
             }
-            sign.pop();
         }
-        return operand.top();
     }
 };
+
+
+
 
 int main(int argc, char *argv[])
 {
     Solution k;
-    string s = "(5-6)+(2)";
+    string s = "(5-(1+(5)))";
     cout << k.calculate(s) << endl;
     return 0;
 }
