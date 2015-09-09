@@ -10,22 +10,22 @@ public:
         sort(nums.begin(), nums.end(), cmp);
         string rst;
         for (int a : nums) {
-            if (rst == "0") rst = "";
             rst += to_string(a);
         }
-        return rst;
+        return rst[0] == '0' ? "0" : rst;
     }
     static bool cmp(int a, int b) {
         string str1 = to_string(a);
         string str2 = to_string(b);
         string sum1 = str1 + str2;
         string sum2 = str2 + str1;
-        //return sum1.compare(sum2) > 0 ? true : false;
-        cout << sum1 << endl;
-        cout << sum2 << endl;
+        //return sum1 > sum2;
         int size = sum1.size();
         for (int i = 0; i < size; i++) {
-            if (sum1[i] > sum2[i]) return false;
+            if (sum1[i] != sum2[i]) {
+                if (sum1[i] > sum2[i]) return false;
+                else return true;
+            }
         }
         return true;
     }
