@@ -13,7 +13,6 @@ public:
             for (auto &x : current) {
                 visit.insert(x);
             }
-
             for (auto word : current) {
                 for (int i = 0; i < word.size(); i++) {
                     for (int j = 'a'; j <= 'z'; j++) {
