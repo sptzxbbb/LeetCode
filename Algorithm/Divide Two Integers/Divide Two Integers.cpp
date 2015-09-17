@@ -9,11 +9,7 @@ public:
         if (divisor == 0 || (dividend == INT_MIN && divisor == -1)) {
             return INT_MAX;
         }
-
-        bool negative = false;
-        if ((dividend > 0 && divisor < 0) || (dividend < 0 && divisor > 0)) {
-            negative = true;
-        }
+        bool negative = (dividend > 0 && divisor < 0) || (dividend < 0 && divisor > 0);
         long _dividend = abs((long)dividend);
         long _divisor = abs((long)divisor);
         long weight = 0;
@@ -29,7 +25,6 @@ public:
             _dividend -= weight;
             res += factor;
         }
-
         if (negative) {
             res = -res;
         }
