@@ -3,34 +3,49 @@
 #include <vector>
 #include <cstdio>
 #include <map>
+#include <climits>
 
 using namespace std;
 
 class Solution {
 public:
-    string fractionToDecimal(int numerator, int denominator) {
-        int integer = numerator / denominator;
-        int remainder = numerator % denominator;
-        vector<int> digit;
-        map<int, int> t;
+    string fractionToDecimal(int a, int b) {
+        long sign = (a * b < 0 ? -1 : 1);
+        long numerator = abs((long)a);
+        long denominator = abs((long)b);
+        long integer = numerator / denominator;
+        long remainder = numerator % denominator;
+        vector<long> digit;
+        multimap<long, pair<long, long> > t;
         bool repeat = false;
-        int index = 0;
+        long index = 0;
         while (remainder != 0) {
             remainder *= 10;
-            int temp = remainder / denominator;
+            long temp = remainder / denominator;
+            remainder %= denominator;
+            auto ret = t.equal_range(temp);
+            for (auto it = ret.first; it != ret.second; ++it) {
+                if (it->second.first == remainder) {
+                    repeat = true;
+                    index = it->second.second;
+                    break;
+                }
+            }
             // repeat found
-            if (t.find(temp) != t.end()) {
-                repeat = true;
-                index = t[temp];
+            if (repeat) {
                 break;
             } else {
+                // repeat not found
                 digit.push_back(temp);
-                t[temp] = digit.size() - 1;
+                pair<long, long> ele(remainder, digit.size() - 1);
+                t.insert( pair<long, pair<long, long>> (temp, ele));
             }
-            remainder = remainder % denominator;
         }
         string res;
-        res = helper(integer);
+        if (sign == -1) {
+            res = '-';
+        }
+        res += helper(integer);
         if (digit.size()) {
             res += '.';
             for (int i = 0; i < (int)digit.size(); ++i) {
@@ -45,9 +60,9 @@ public:
         }
         return res;
     }
-    string helper(int k) {
+    string helper(long k) {
         char buf[32];
-        sprintf(buf, "%d", k);
+        sprintf(buf, "%ld", k);
         string s = buf;
         return s;
     }
@@ -55,8 +70,8 @@ public:
 
 int main(int argc, char *argv[])
 {
-    int a = 1;
-    int b = 6;
+    long a = -1;
+    long b = -INT_MIN;
     Solution k;
     cout << k.fractionToDecimal(a, b) << endl;
     return 0;
