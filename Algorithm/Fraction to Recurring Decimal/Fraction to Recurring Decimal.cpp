@@ -10,9 +10,9 @@ using namespace std;
 class Solution {
 public:
     string fractionToDecimal(int a, int b) {
-        long sign = (a * b < 0 ? -1 : 1);
         long numerator = abs((long)a);
         long denominator = abs((long)b);
+		long sign = ((a > 0 && b < 0) || (a < 0 && b > 0) ? -1 : 1);
         long integer = numerator / denominator;
         long remainder = numerator % denominator;
         vector<long> digit;
