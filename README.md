@@ -1,5 +1,5 @@
-Coding Practice.
+# Coding Practice.
 
-# LeetCode
+## LeetCode
 
 C++: 230/266(36 Locked)
