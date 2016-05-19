@@ -1,1 +1,0 @@
-Sysu Online Judge
