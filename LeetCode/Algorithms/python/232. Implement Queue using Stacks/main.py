@@ -16,7 +16,14 @@ class Queue(object):
         """
         :rtype: nothing
         """
-        self.stack.pop(0)
+        temp = []
+        while len(self.stack):
+            ele = self.stack.pop()
+            temp.append(ele)
+        temp.pop()
+        while len(temp):
+            ele = temp.pop()
+            self.stack.append(ele)
 
     def peek(self):
         """
@@ -24,7 +31,6 @@ class Queue(object):
         """
         if not self.empty():
             return self.stack[0]
-
 
     def empty(self):
         """
