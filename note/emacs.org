@@ -5,13 +5,14 @@
 
 * Web-mode
   Damn it. I'm Lovin' It.
-
+  
   + *C-c C-n*: Jump to opening/closing HTML Tags.
   + *C-c C-i*: indent entire buffer.
   + *C-c C-f*: toggle folding on a tag/block.
   + *C-c C-s*: Insert snippet.
   + *M-;*: comment/uncomment block.
   + *C-c C-m*: clever selection and expansion.
+  + *C-c C-d n*: normalize.
 
 
 
