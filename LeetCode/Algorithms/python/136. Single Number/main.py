@@ -9,7 +9,7 @@ class Solution(object):
         """
         ans = 0
         for e in nums:
-            ans = ans ^ e
+            ans ^= e
         return ans
 
 
