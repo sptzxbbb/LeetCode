@@ -19,7 +19,7 @@ class Solution(object):
 
 def main():
     s = Solution()
-    nums = [1]
+    nums = []
     s.moveZeroes(nums)
     print(nums)
 

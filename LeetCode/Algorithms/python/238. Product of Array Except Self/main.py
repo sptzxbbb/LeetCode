@@ -14,7 +14,6 @@ class Solution(object):
             else:
                 ans.append(ans[idx - 1] * nums[idx - 1])
 
-        print(ans)
 
         length = len(nums)
         for idx, val in enumerate(reversed(nums)):
@@ -23,7 +22,6 @@ class Solution(object):
             else:
                 right_product *= nums[length - 1 - (idx - 1)]
                 ans[length - 1 - idx] *= right_product
-            
         return ans
 
 

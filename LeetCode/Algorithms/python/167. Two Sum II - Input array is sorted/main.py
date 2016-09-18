@@ -12,6 +12,8 @@ class Solution(object):
         :rtype: List[int]
         """
         for idx1, value1 in enumerate(numbers):
+            if idx1 and numbers[idx1] == numbers[idx1 - 1]:
+                continue
             value2 = target - value1
             if self.binarySearch(numbers[idx1 + 1:], value2):
                 idx2 = numbers.index(value2, idx1 + 1)
