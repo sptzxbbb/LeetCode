@@ -43,8 +43,22 @@
     - num.toString(16), 字符串转换, 附带进制转换
 19. *Infinity* 表示超出最大表示范围的值, typeof 返回 *number*.
 20. *NaN* 表示一个 *number* 不合法, 例如 x = 100 / "apple".
-
-
-
-
-
+21. *Math* 是一个执行数学操作的对象.
+    - Math.random(), [0, 1)
+    - Math.min()
+    - Math.max()
+    - Math.round(), nearest integer
+    - Math.ceil()
+    - Math.floor()
+    - Math.E, Math.PI, Math.SQRT2... 一系列常量
+22. *Date* 对象由 year, month, day, hour, minute, second, milliseconds 组成
+23. 使用[]来创建 *Array*, push()和 pop()来增删最后一个元素, unshift()和 shift()来增删第一个元素.
+24. a.splice()用于自由增删 Array 的元素.
+25. a.concate(b)返回连接后的字符串
+26. 0, "", undefined, null, false, NaN 的 Booelan 值为 false.
+27. for/in loop 用于遍历 object 的属性
+28. Js 中, object 有三种
+    + Object
+    + Date
+    + Array
+29. "use strict"放在 script 或者 function 的开始位置.
