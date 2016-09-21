@@ -1,13 +1,13 @@
 * JavaScript 笔记
 
 1. 在页面加载完成后, 调用 /document.write()/ 会删除整个 HTML.
-2. 常量称为 *literals*, 变量称为 *variables* .
-3. *literals* 分为 *Numbers* 和 *Strings* .
-4. 已声明未赋值的变量的值为 *undefined* .
+2. 常量称为 *literals*, 变量称为 *variables*.
+3. *literals* 分为 *Numbers* 和 *Strings*.
+4. 已声明未赋值的变量的值为 *undefined*.
 5. 重复声明不会改变一个变量的值.
-6. 赋值时候遇到字符串的数, 余下的数会被转换成字符串, 拼接成一个字符串。
+6. 赋值时候遇到字符串的数, 余下的数会被转换成字符串, 拼接成一个字符串.
 7. 比较值时候用 *==* 和 *!=*,比较值和类型时候用 *===*, *!==*.
-8. 数据类型分为以下几种, 值为 *undefined* 的变量的 typeof 仍然是 *undefined* , 值为 *null* 的变量的 typeof 是 *object* .
+8. 数据类型分为以下几种, 值为 *undefined* 的变量的 typeof 仍然是 *undefined*, 值为 *null* 的变量的 typeof 是 *object*.
    + number
    + string
    + boolean
@@ -19,8 +19,30 @@
     - Event 触发
     - Js 代码调用
     - 自动调用
-
-
+12. object 的键值对(name:pair)称作 *properties*.
+13. Js 里面 *object* 和 *function* 都是变量(函数式语言的特征).
+14. 函数外声明的变量是 GLOBAL 变量.
+15. 在函数内对一个未声明的 *variable* 赋值, 会自动创建一个对应的 GLOBAL 变量.
+16. Js 的对象无法作比较.
+17. *String* 自带一些 *methods* 和 *properties*.
+    - str.length, 返回长度
+    - str.indexOf("locate"), 返回子串第一次出现的 index.
+    - str.lastIndexOf("locate"), 返回子串最后一次出现的 index.
+    - str.search("locate"), 与 indexOf()类似, 功能更强大.
+    - str.slice(start, end), 返回[start, end]的子串, 参数为负数, 意味着倒数.
+    - str.substring(start, end), 与 slice()相同,但不接受负数的参数.
+    - str.substr(start, length), 第二个参数为子串长度.
+    - str.replace(s1, s2), 把遇到的 s1 用 s2 替换,返回一个新的字符串,默认只替换第一个.
+    - str.toUpperCase().
+    - str.toLowerCase().
+    - str.concat(" ", str2), 连接字符串,与加号+相同.
+    - str.charAt(index), 返回字符
+    - str.charCodeAt(index), 返回字符的 Unicode
+    - str.split(","), 把 *string* 分解成 *array*.
+18. Js 的 *number* 永远是 64 位的浮点数.
+    - num.toString(16), 字符串转换, 附带进制转换
+19. *Infinity* 表示超出最大表示范围的值, typeof 返回 *number*.
+20. *NaN* 表示一个 *number* 不合法, 例如 x = 100 / "apple".
 
 
 
