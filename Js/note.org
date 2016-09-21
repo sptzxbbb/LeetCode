@@ -1,0 +1,28 @@
+* JavaScript 笔记
+
+1. 在页面加载完成后, 调用 /document.write()/ 会删除整个 HTML.
+2. 常量称为 *literals*, 变量称为 *variables* .
+3. *literals* 分为 *Numbers* 和 *Strings* .
+4. 已声明未赋值的变量的值为 *undefined* .
+5. 重复声明不会改变一个变量的值.
+6. 赋值时候遇到字符串的数, 余下的数会被转换成字符串, 拼接成一个字符串。
+7. 比较值时候用 *==* 和 *!=*,比较值和类型时候用 *===*, *!==*.
+8. 数据类型分为以下几种, 值为 *undefined* 的变量的 typeof 仍然是 *undefined* , 值为 *null* 的变量的 typeof 是 *object* .
+   + number
+   + string
+   + boolean
+   + array(底层以 object 实现, 因此 typeof 返回 object)
+   + object
+9. *null* 值表明某个不存在的事物.
+10. *null* 和 *undefined* 在值上相等, 类型不等.
+11. Js 函数有三种调用方式.
+    - Event 触发
+    - Js 代码调用
+    - 自动调用
+
+
+
+
+
+
+
