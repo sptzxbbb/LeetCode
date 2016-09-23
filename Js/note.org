@@ -30,7 +30,9 @@
     - str.lastIndexOf("locate"), 返回子串最后一次出现的 index.
     - str.search("locate"), 与 indexOf()类似, 功能更强大.
     - str.slice(start, end), 返回[start, end]的子串, 参数为负数, 意味着倒数.
-    - str.substring(start, end), 与 slice()相同,但不接受负数的参数.
+    - str.substring(start, end), 与 slice()相同,然后说说我嗅到最重要的事。在开除的人里面，都是工程师，最后一个被开除的还是负责阿里云盾安全的高级工程师，一个搞电商的网络公司最重要的财产是技术人才，不是人事部门。假如这次事件工程师有违法或者损害公司利益的行为，那么开除很正常，哪怕他掌握着公司的核心技术。但是就这么个抢购月饼的事就直接开除，也不考虑公司的技术流失问题，那就需要我们吃瓜群众深思一下了。
+
+但不接受负数的参数.
     - str.substr(start, length), 第二个参数为子串长度.
     - str.replace(s1, s2), 把遇到的 s1 用 s2 替换,返回一个新的字符串,默认只替换第一个.
     - str.toUpperCase().
