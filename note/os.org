@@ -1,0 +1,27 @@
+* 死锁
++ 互斥使用(Mutual exclusion)
++ 不可抢占(No preemption)
++ 请求和保持(Hold and wait)
++ 循环等待(Circular wait)
+
+* 进程间通信
++ 消息传递(管道, FIFO, 消息队列)
++ 同步
++ 共享内存
++ 远程过程调用
+
+* 线程
+** 线程同步机制
++ 临界区
++ 互斥量
++ 信号量
++ 事件
+* 数据库
+
+** 事务特性(ACID)
++ A, atomacity, 原子性.
++ C, consistency, 一致性.
++ I, Isolation, 隔离性.
++ D, Durability, 持久性.
+
+

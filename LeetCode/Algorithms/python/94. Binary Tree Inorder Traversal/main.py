@@ -14,7 +14,7 @@ class Solution(object):
         :type root: TreeNode
         :rtype: List[int]
         """
-        return self.inorderIterative(root)
+        return self.inorderIterative2(root)
 
     def inorderRecursive(self, node, ans):
         if not node:
