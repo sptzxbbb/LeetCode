@@ -7,9 +7,11 @@ A repo keeping all my snippet practice code.
 ### Algorithms
 
 + C++: 230/363
-+ Python: 0/363
++ Python: 23/363
 
 ### Database
+
++ 13/13
 
 ### Shell
 
