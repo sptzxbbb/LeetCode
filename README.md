@@ -15,6 +15,8 @@ A repo keeping all my snippet practice code.
 
 ### Shell
 
++ 4/4
+
 ## Sicily
 
 C++: 217 exercises passed
