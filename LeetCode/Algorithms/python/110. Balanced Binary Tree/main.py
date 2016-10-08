@@ -16,20 +16,20 @@ class Solution(object):
         if not root:
             ans = True
         else:
-            leftBalanced, leftDepth = self.isBalanced2(root.left)
-            rightBalanced, rightDepth = self.isBalanced2(root.right)
+            leftDepth = self.isBalanced2(root.left)
+            rightDepth = self.isBalanced2(root.right)
             diff = abs(leftDepth - rightDepth)
-            ans = True if leftBalanced and rightBalanced and diff <= 1 else False
+            ans = True if leftDepth >= 0 and rightDepth >= 0 and diff <= 1 else False
         return ans
 
     def isBalanced2(self, root):
         if not root:
-            return (True, 0)
+            return 0
         else:
-            leftBalanced, leftDepth = self.isBalanced2(root.left)
-            rightBalanced, rightDepth = self.isBalanced2(root.right)
+            leftDepth = self.isBalanced2(root.left)
+            rightDepth = self.isBalanced2(root.right)
             diff = abs(leftDepth - rightDepth)
-            balanced = None
-            height = max(leftDepth, rightDepth) + 1
-            balanced = True if leftBalanced and rightBalanced and diff <= 1 else False
-            return (balanced, height)
+            if diff <= 1 and leftDepth >= 0 and rightDepth >= 0:
+                return max(leftDepth, rightDepth) + 1
+            else:
+                return -1
