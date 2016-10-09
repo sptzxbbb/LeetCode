@@ -1,6 +1,3 @@
-from copy import deepcopy
-
-
 class TreeNode:
     def __init__(self, x):
         self.val = x
@@ -26,7 +23,7 @@ class Solution:
             if node.right:
                 self.dfs(node.right, path, ans)
             if (not node.left) and (not node.right):
-                ans.append(deepcopy(path))
+                ans.append(path[:])
             path.pop()
 
 
@@ -41,4 +38,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    for x in range(10):
+        pass
+
+    print(x)
