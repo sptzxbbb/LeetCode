@@ -16,3 +16,4 @@ class Solution(object):
                     pre = nums[p2]
                     p1 += 1
                 p2 += 1
+            return p1
