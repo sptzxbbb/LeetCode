@@ -6,8 +6,8 @@ A repo keeping all my snippet practice code.
 
 ### Algorithms
 
-+ C++: 230/363
-+ Python: 23/363
++ C++: 230/398
++ Python: 76/398
 
 ### Database
 
