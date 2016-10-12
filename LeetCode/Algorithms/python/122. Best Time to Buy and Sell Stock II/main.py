@@ -7,6 +7,6 @@ class Solution(object):
         profit = 0
         length = len(prices)
         for idx, price in enumerate(prices):
-
-                profit +=  prices[idx + 1] - price
+            if idx < length - 1 and price < prices[idx + 1]:
+                profit += prices[idx + 1] - price
         return profit
