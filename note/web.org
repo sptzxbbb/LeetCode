@@ -139,3 +139,21 @@
 1997 年发布.加入了持久连接和管道机制等特点.
 
 ** 2.0
+
+* DNS
+DNS 是一个分布式数据库, 记录 Resource records(RR)
+RR format: (name, value, type, ttl)
+** Type=A
+   + name is hostname
+   + value is IP address
+** Type=NS(Name Server)
+   + name is domain
+   + value is hostname of authoritative name server for this domain
+** Type=CNAME
+   + name is alias name
+   + value is the real name
+** Type=MX
+   + value is name of mailserver associated with name
+
+
+

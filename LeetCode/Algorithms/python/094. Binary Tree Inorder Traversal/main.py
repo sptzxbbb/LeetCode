@@ -8,13 +8,14 @@
 #         self.left = None
 #         self.right = None
 
+
 class Solution(object):
     def inorderTraversal(self, root):
         """
         :type root: TreeNode
         :rtype: List[int]
         """
-        return self.inorderIterative2(root)
+        return self.inorderIterative(root)
 
     def inorderRecursive(self, node, ans):
         if not node:
