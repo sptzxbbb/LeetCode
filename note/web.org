@@ -110,7 +110,18 @@
 
 * TCP 协议详解
 ** 三次握手和四次挥手
-
+** 超时重新发送
+   + RTO(retransmission timeout), 统计 RTT 来动态决定合理的 RTO.
+   + RTT(round trip time), 往返时间
+** 快速重传(Fast retransmission)
+   接收到三个重复的 ACK 时候, 马上重传对应的片段.
+   快速重新发送机制利用重复的 ACK 来提示 *空洞* 的存在.
+   当重复次数达到阈值时，认为空洞对应的片段在网络中丢失.
+   快速重新发送机制提高了检测丢失片段的效率,往往可以在超时之前探测到丢失片段,并重复发送丢失的片段.
+** 流量控制(Traffic Control)
+** 堵塞控制(Congestion Control)
+*** 慢启动(Slow Start)
+*** 堵塞避免(Congestion Avoidance)
 * IP 协议
 ** 广播与多播
 
