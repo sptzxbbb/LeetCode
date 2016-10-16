@@ -1,5 +1,5 @@
 * Form
-  is_valid()被调用时候, 会对每个字段调用 validation routines. 如果所有字段检查都通过了, 返回 True 同时
+  is_valid()被调用时候, 会调用 *clean()* ,后者对每个字段调用 validation routines. 如果所有字段检查都通过了, 返回 True 同时
   把 form 的数据 request.POST 放入 form 本身 的 *cleaned_data* 字典属性里.
 
   view 函数处理一个 POST 请求的第一步是用 request 里的数据创建一个 form 实例, 这步叫做绑定数据到表单, 
@@ -10,18 +10,16 @@
   form 中带有上传的文件时候, 上传的文件放在 request.FILES 中, 而不是 request.POST 中.
 
 ** ModelForm
-   Model 的 Validation( *Model.full_clean()* ) 会在 ModelForm 的 *clean()* 方法被调用后马上被触发.
-
-   一个绑定了某个 model 对象的 ModelForm 会包含一个 *instance* 属性, 使得它的 method 能访问实例.
+   Model 的 Validation, *Model.full_clean()*, 会在 ModelodelForm 会包含一个 *instance* 属性, 使得它的 method 能访问实例.
 
    一般来说, 修改定制了表单的 *clean()* 方法后, 一定要调用父类的 *clean()* .
 
    校验过程中, ModelForm 会调用 Model 中每一个和表单中对应的 field 的 *clean()* 函数. 因此如果表单中排除了
-model 中的某些 fields, 那么这些字段的 validation 将不会运行.
+   model 中的某些 fields, 那么这些字段的 validation 将不会运行.
 
    每一个 ModelForm 还有一个 *save()* 函数. 这个函数会创建和保存一个和表单绑定的数据库对象.
 
-   ModelForm 的子类还接受一个存在的实例作为关键字参数 *instance*. 如果提供这个参数, *save* ()会更新这个实例.
+   ModelForm 的子类还接受一个存在的实例作为关键字参数 *instance*. 如果提供这个参数, *save()* 会更新这个实例.
 
 
    #+BEGIN_SRC python
@@ -37,3 +35,46 @@ model 中的某些 fields, 那么这些字段的 validation 将不会运行.
    >>> f = ArticleForm(request.POST, instance=a)
    >>> f.save()
    #+END_SRC
+
+   *save()* 方法接受一个可选的关键字参数 *commit* ,值为 True 或者 False, 表示返回的对象是否保存到数据库当中.
+
+   ModelForm 的 *Meta* 下可以通过 *field_classes*, *widget*, *labels*, *help_texts*, *error_messages* 来 customize
+   每一个字段.
+
+   Form 的 *clean()* 方法被调用后马上被触发.
+
+   一个绑定了某个 model 对象的 ModelForm 会包含一个 *instance* 属性, 使得它的 method 能访问实例.
+
+   一般来说, 修改定制了表单的 *clean()* 方法后, 一定要调用父类的 *clean()* .
+
+   校验过程中, ModelForm 会调用 Model 中每一个和表单中对应的 field 的 *clean()* 函数. 因此如果表单中排除了
+   model 中的某些 fields, 那么这些字段的 validation 将不会运行.
+
+   每一个 ModelForm 还有一个 *save()* 函数. 这个函数会创建和保存一个和表单绑定的数据库对象.
+
+   ModelForm 的子类还接受一个存在的实例作为关键字参数 *instance*. 如果提供这个参数, *save()* 会更新这个实例.
+
+
+   #+BEGIN_SRC python
+   # Create a form instance from POST data.
+   >>> f = ArticleForm(request.POST)
+
+   # Save a new Article object from the form's data.
+   >>> new_article = f.save()
+
+   # Create a form to edit an existing Article, but use
+   # POST data to populate the form.
+   >>> a = Article.objects.get(pk=1)
+   >>> f = ArticleForm(request.POST, instance=a)
+   >>> f.save()
+   #+END_SRC
+
+   *save()* 方法接受一个可选的关键字参数 *commit* ,值为 True 或者 False, 表示返回的对象是否保存到数据库当中.
+
+   ModelForm 的 *Meta* 下可以通过 *field_classes*, *widget*, *labels*, *help_texts*, *error_messages* 来 customize
+   每一个字段.
+
+
+
+* View
+  

@@ -1,0 +1,10 @@
+* org-mode
+  + *<s tab* 来插入代码块
+  + 在代码块内, *Ctrl+x '* 可以在额外分割的语言专用模式窗口中编辑, *Ctrl+x Ctrl+s* 来保存结果到原 buffer 中.
+    然后 *Ctrl+x '* 关闭这个 buffer 并回到原 buffer 中.
+
+* Web-mode
+
+  + *C-c C-d n*: normalize the buffer(indentation)
+
+
