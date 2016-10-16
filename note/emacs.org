@@ -1,10 +1,17 @@
 * org-mode
   + *<s tab* 来插入代码块
-  + 在代码块内, *Ctrl+x '* 可以在额外分割的语言专用模式窗口中编辑, *Ctrl+x Ctrl+s* 来保存结果到原 buffer 中.
+  + 在代码块内, *C-x '* 可以在额外分割的语言专用模式窗口中编辑, *Ctrl+x Ctrl+s* 来保存结果到原 buffer 中.
     然后 *Ctrl+x '* 关闭这个 buffer 并回到原 buffer 中.
 
 * Web-mode
+  Damn it. I'm Lovin' It.
 
-  + *C-c C-d n*: normalize the buffer(indentation)
+  + *C-c C-n*: Jump to opening/closing HTML Tags.
+  + *C-c C-i*: indent entire buffer.
+  + *C-c C-f*: toggle folding on a tag/block.
+  + *C-c C-s*: Insert snippet.
+  + *M-;*: comment/uncomment block.
+  + *C-c C-m*: clever selection and expansion.
+
 
 
