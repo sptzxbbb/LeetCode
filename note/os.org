@@ -4,6 +4,12 @@
 + 请求和保持(Hold and wait)
 + 循环等待(Circular wait)
 
+** 处理方法
+   + 预防死锁
+   + 避免死锁(银行家算法)
+   + 检测死锁(资源分配图)
+   + 解除死锁(剥夺资源, 撤销进程)
+
 * 进程间通信
 + 消息传递(管道, FIFO, 消息队列)
 + 同步
@@ -24,4 +30,11 @@
 + I, Isolation, 隔离性.
 + D, Durability, 持久性.
 
+
+* 编译
+
+  + 预处理(Preprocessing)
+  + 编译(Compilation)
+  + 汇编(Assembly)
+  + 链接(Linking)
 
