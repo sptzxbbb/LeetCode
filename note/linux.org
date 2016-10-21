@@ -61,19 +61,24 @@
       1.1) 正在运行
       正在运行的进程就是当前进程(由 current 所指向的进程)
       1.2) 正准备运行
-      准备运行的进程只要得到 CPU 就可以立即投入运行，CPU 是这些进程唯一等待的系统资源，系统中有一个运行队列(run_queue)，用来容纳所有处于可运行状态的进程，调度程序执行时，从中选择一个进程投入运行
+      准备运行的进程只要得到 CPU 就可以立即投入运行，CPU 是这些进程唯一等待的系统资源，系统中有一个运行队列(run_queue)，
+      用来容纳所有处于可运行状态的进程，调度程序执行时，从中选择一个进程投入运行
 
-      2) TASK_INTERRUPTIBLE: 可中断的等待状态，是针对等待某事件或其他资源的睡眠进程设置的，在内核发送信号给该进程表明事件已经发生时，进程状态变为 TASK_RUNNING，它只要调度器选中该进程即可恢复执行
+      2) TASK_INTERRUPTIBLE: 可中断的等待状态，是针对等待某事件或其他资源的睡眠进程设置的，
+      在内核发送信号给该进程表明事件已经发生时，进程状态变为 TASK_RUNNING，它只要调度器选中该进程即可恢复执行
 
       3) TASK_UNINTERRUPTIBLE: 不可中断的等待状态
-      处于该状态的进程正在等待某个事件(event)或某个资源，它肯定位于系统中的某个等待队列(wait_queue)中，处于不可中断等待态的进程是因为硬件环境不能满足而等待，例如等待特定的系统资源，它任何情况下都不能被打断，只能用特定的方式来唤醒它，例如唤醒函数 wake_up()等
-      　　　　　它们不能由外部信号唤醒，只能由内核亲自唤醒
+      处于该状态的进程正在等待某个事件(event)或某个资源，它肯定位于系统中的某个等待队列(wait_queue)中，
+      处于不可中断等待态的进程是因为硬件环境不能满足而等待，例如等待特定的系统资源，它任何情况下都不能被打断，
+      只能用特定的方式来唤醒它，例如唤醒函数 wake_up()等,它们不能由外部信号唤醒，只能由内核亲自唤醒
 
       4) TASK_ZOMBIE: 僵死
-      进程虽然已经终止，但由于某种原因，父进程还没有执行 wait()系统调用，终止进程的信息也还没有回收。顾名思义，处于该状态的进程就是死进程，这种进程实际上是系统中的垃圾，必须进行相应处理以释放其占用的资源。
+      进程虽然已经终止，但由于某种原因，父进程还没有执行 wait()系统调用，终止进程的信息也还没有回收。
+      顾名思义，处于该状态的进程就是死进程，这种进程实际上是系统中的垃圾，必须进行相应处理以释放其占用的资源。
 
       5) TASK_STOPPED: 暂停
-      此时的进程暂时停止运行来接受某种特殊处理。通常当进程接收到 SIGSTOP、SIGTSTP、SIGTTIN 或 SIGTTOU 信号后就处于这种状态。例如，正接受调试的进程就处于这种状态
+      此时的进程暂时停止运行来接受某种特殊处理。通常当进程接收到 SIGSTOP、SIGTSTP、SIGTTIN 或 SIGTTOU 信号后就处于这种状态。
+      例如，正接受调试的进程就处于这种状态
       　　　　
       　　　　　6) TASK_TRACED
       　　　　　从本质上来说，这属于 TASK_STOPPED 状态，用于从停止的进程中，将当前被调试的进程与常规的进程区分开来
@@ -94,8 +99,8 @@
     /*
       3. usage
       进程描述符使用计数，被置为 2 时，表示进程描述符正在被使用而且其相应的进程处于活动状态
-    ,*/
-    atomic_t usage;
+      */
+      atomic_t usage;
 
     /*
       4. flags
@@ -334,7 +339,8 @@
       21. 进程标识符(PID)
       在 CONFIG_BASE_SMALL 配置为 0 的情况下，PID 的取值范围是 0 到 32767，即系统中的进程数最大为 32768 个
       #define PID_MAX_DEFAULT (CONFIG_BASE_SMALL ? 0x1000 : 0x8000)
-      在 Linux 系统中，一个线程组中的所有线程使用和该线程组的领头线程(该组中的第一个轻量级进程)相同的 PID，并被存放在 tgid 成员中。只有线程组的领头线程的 pid 成员才会被设置为与 tgid 相同的值。注意，getpid()系统调用
+      在 Linux 系统中，一个线程组中的所有线程使用和该线程组的领头线程(该组中的第一个轻量级进程)相同的 PID，并被存放在 tgid 成员中。
+      只有线程组的领头线程的 pid 成员才会被设置为与 tgid 相同的值。注意，getpid()系统调用
       返回的是当前进程的 tgid 值而不是 pid 值。
     ,*/
     pid_t pid;
@@ -760,3 +766,93 @@
   #endif
   };
 #+END_SRC
+
+
+* Select, Poll, Epoll 区别
+
+每次调用 select 和 poll 都需要把文件描述符集合复制到内核当中, 可能是潜在
+几百 KB 的开销, 同时返回时候会线性搜索检测的文件描述符
+
+Epoll 创建时候会在内核分配一颗红黑树来保存检测的文件描述符, 因此没有调用开销.
+同时在内核中断里为每一个文件描述符注册了一个回调函数, 把就绪的文件描述符加入一个
+ready list 当中.
+
+* 历史
+  Multis -> Unics(汇编) -> Unix(C) -> BSD(Unix 分支)/System V(Official)
+  -> Minix(Mini unix,Unix-like) -> Linux
+
+
+* 进程
+  内核把进程存放在一个双向循环链表, 称作任务队列(task list).
+
+  2.6 以后, task_struct 不再直接放入内核栈, 而是在内核栈的栈底或者栈顶, 创建一个新的结构 thread_info.
+
+#+BEGIN_SRC c
+  struct thread_info {
+    struct pcb_struct pcb;    /* palcode state */
+
+    struct task_struct  *task;    /* main task structure */
+    unsigned int    flags;    /* low level flags */
+    unsigned int    ieee_state; /* see fpu.h */
+
+    struct exec_domain  *exec_domain; /* execution domain */
+    mm_segment_t    addr_limit; /* thread address space */
+    unsigned    cpu;    /* current CPU */
+    int     preempt_count; /* 0 => preemptable, <0 => BUG */
+
+    int bpt_nsaved;
+    unsigned long bpt_addr[2];    /* breakpoint handling  */
+    unsigned int bpt_insn[2];
+
+    struct restart_block  restart_block;
+  };
+
+#+END_SRC
+
+其中的 task 指向该任务实际 task_struct 的指针.
+
+内核查看 task_struct 过程中, 先要调用 current 宏得到线程内核栈, 然后调用 current_thread_info()
+计算 thread_info 的偏移,最后从 thread_info 中的 task 得到 task_struct.
+
+** 进程状态
+   + TASK_RUNNING: 进程正在执行或者在 run_queue 中等待执行. 也是进程在用户空间中执行的唯一可能状态.
+   + TASK_INTERRUPTIBLE: 进程正在睡眠(阻塞), 位于某个 wait_queue. 一旦睡眠条件解除, 内核会把进程设置为 TASK_RUNNING.
+     处于此状态的进程也会因为接收到信号而提前被唤醒并随时准备投入运行.
+   + TASK_UNINTERRUPTIBLE: 同上, 但处于此状态的任务对信号不做响应, 只能由内核唤醒, 例如 wake_up().
+   + TASK_ZOMBIE: 进程已经终止, 但父进程还没有执行 wait()系统调用, 终止进程的信息也还没有回收.
+   + TASK_STOPPED: 进程此时处于暂停状态来接受某个特殊处理. 通常进程接收到 SIGSTOP, SIGTSTP, SIGTTIN 或 SIGTTOU
+     信号后就处于这种状态. 例如正接受调试的进程.
+   + TASK_SWAPPING: 换入/换出
+
+*** 设置当前进程状态.
+     内核使用 set_task_state(task, state)来调整某个进程的状态.
+
+     
+** 进程创建  
+   Unix 的进程创建分为两个阶段, fork()和 exec().
+   
+   fork()复制当前进程来创建一个子进程, 两者区别仅在于 PID, PPID, 和某些资源和统计量(例如, 挂起的信号).
+   exec()复制读取可执行文件并将其载入地址空间开始运行.
+
+*** 写时拷贝(copy-on-write)
+    fork()并不复制整个今晨地址空间,而是让父子进程共享同一个拷贝, 因此实际开销就是复制父进程的页表以及给子进程
+    创建唯一的进程描述符.
+
+    资源的复制只有在需要写入的时候才进行,在此之前,只是以只读方式共享.
+    
+*** fork()
+    linux 通过 clone()系统调用实现 fork(). 这个调用通过一系列的参数标志来指名父子进程需要共享的资源.
+
+    然后 clone()去调用 do_fork(), do_fork()完成了创建的大部分工作, 该函数调用 copy_process(), 然后让
+    进程开始运行.
+
+    copy_process()完成了这些工作:
+    + 调用 dup_task_struct()为新进程创建一个内核栈, thread_info 结构和 task_struct 结构, 这些值和父进程
+      一模一样, 此时子进程和父进程的描述符是完全相同的.
+    + 检查并确保新创建这个子进程后, 当前用户所拥有的进程数目没有超过给它分配的资源的限制.
+    + 子进程着手是自己和父进程区别开来, 进程描述符许多成员都要被清零或设为初始值. task_struct 的大多数数据
+      未被修改.
+    + 子进程状态设为 TASK_UNINTERRUPTIBLE, 确保它不会运行.
+    + copy_process()调用 copy_flags()以更新 task_struct 的 flags 成员.
+    + 调用 alloc_pid()为新进程分配一个有效的 PID.
+
