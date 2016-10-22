@@ -917,7 +917,324 @@ ready list 当中.
    第二种是实时优先级, 默认变化范围[0, 99]. 与 nice 相反, 实时优先级数值越高, 进程优先级越高. 任何实时进程的优先级都高于普通进程.
    也就是实时优先级和 nice 优先级处于互不相交的两个范畴.
 
+   Linux 的 CFS 调度器并没有直接分配时间片给进程, 它将处理器的使用比例划分给了进程. 这种情况下, 进程所获得的处理器时间其实是和系统负载密切相关.
 
+   这个比例进一步还会收进程 nice 值的影响, nice 作为权重将调整进程所使用的 CPU 时间比. 具有高 nice 值的进程会被赋予低权重, 低 nice 值的进程会被赋予高权重.
+
+   Linux 使用 CFS 调度器, 进程抢占时机取决于新的可运行进程消耗了多少处理器时间比, 如果消耗的使用比例比当前进程小, 则新进程立刻投入运行, 抢占当前进程.
+
+** 调度器类   
+   Linux 调度器是以模块方式提供的, 目的是运行不同类型的进程可以有针对性地选择调度算法.
+
+   这种模块化结构被称为调度器类(scheduler classes), 它允许多种不同的可动态添加的调度算法并存, 调度属于自己范畴的进程.
+
+   每个调度器有一个优先级, 内核会按照优先级顺序遍历调度器, 拥有一个可执行进程的最高优先级的调度器类胜出, 选择执行那一个线程.
+
+   完全公平调度(CFS)是一个针对普通进程的调度类, linux 中称为 SCHED_NORMAL.
+   
+** 公平调度
+   CFS 出发点基于一个简单的理念: 每个进程将能获得 1/n 的处理器时间, n 指可运行进程的数量.
+
+   CFS 在所有可运行进程总数基础上计算出某个进程应该运行多久, 而不是依靠 nice 值计算时间片. nice 值在 CFS 中用作进程获得处理器运行比的权重.
+
+   CFS 使用 targeted latency 作为调度周期来计算 timeslice, latency 越小, 越接近完美多任务.
+
+   CFS 使用 minimum granularity 来表示 timeslice 的最小值, 这个值越小, 会加重 CPU 切换进程的负载.
+
+   总结: 任何进程获得的 CPU 时间是由它自己和其他所有可运行进程 nice 值的相对差值决定的. nice 值对时间片的作用不再是算数加权, 而是几何加权.
+
+   
+** 时间记账
+   所有调度器都必须对进程运行时间做记账.
+   
+   CFS 使用调度器实体结构来追踪进程运行记账:
+   
+#+BEGIN_SRC c
+  struct sched_entity {
+    struct load_weight  load;   /* for load-balancing */
+    struct rb_node    run_node;
+    struct list_head  group_node;
+    unsigned int    on_rq;
+
+    u64     exec_start;
+    u64     sum_exec_runtime;
+    u64     vruntime;
+    u64     prev_sum_exec_runtime;
+
+    u64     nr_migrations;
+
+  #ifdef CONFIG_SCHEDSTATS
+    struct sched_statistics statistics;
+  #endif
+
+  #ifdef CONFIG_FAIR_GROUP_SCHED
+    struct sched_entity *parent;
+    /* rq on which this entity is (to be) queued: */
+    struct cfs_rq   *cfs_rq;
+    /* rq "owned" by this entity/group: */
+    struct cfs_rq   *my_q;
+  #endif
+  };
+#+END_SRC
+
+vruntime 变量存放进程的虚拟运行时间, 该运行时间的计算是经过了所有可运行进程总数的标准化. 虚拟时间以 ns 为单位,
+所以 vruntime 和定时器节拍不再相关.
+
+CFS 使用了 vruntime 变量来记录一个程序到底运行了多长时间以及它应该再运行多久.
+
+#+BEGIN_SRC c
+  static void update_curr(struct cfs_rq *cfs_rq)
+  {
+    struct sched_entity *curr = cfs_rq->curr;
+    u64 now = rq_of(cfs_rq)->clock_task;
+    unsigned long delta_exec;
+
+    if (unlikely(!curr))
+      return;
+
+    /*
+     ,* Get the amount of time the current task was running
+     ,* since the last time we changed load (this cannot
+     ,* overflow on 32 bits):
+     ,*/
+    delta_exec = (unsigned long)(now - curr->exec_start);
+    if (!delta_exec)
+      return;
+
+    __update_curr(cfs_rq, curr, delta_exec);
+    curr->exec_start = now;
+
+    if (entity_is_task(curr)) {
+      struct task_struct *curtask = task_of(curr);
+
+      trace_sched_stat_runtime(curtask, delta_exec, curr->vruntime);
+      cpuacct_charge(curtask, delta_exec);
+      account_group_exec_runtime(curtask, delta_exec);
+    }
+  }
+#+END_SRC
+
+update_curr()计算了当前进程的执行时间, 并且将其存放在变量 delta_exec 中. 然后它又将运行时间传递给了__update_curr(), 
+又后者再根据当前可运行进程总数对运行时间进行加权计算, 最终将权重值与当前运行进程的 vruntime 相加.
+
+#+BEGIN_SRC c
+  /*
+   ,* Update the current task's runtime statistics. Skip current tasks that
+   ,* are not in our scheduling class.
+   ,*/
+  static inline void
+  __update_curr(struct cfs_rq *cfs_rq, struct sched_entity *curr,
+                unsigned long delta_exec)
+  {
+    unsigned long delta_exec_weighted;
+
+    schedstat_set(curr->statistics.exec_max,
+                  max((u64)delta_exec, curr->statistics.exec_max));
+
+    curr->sum_exec_runtime += delta_exec;
+    schedstat_add(cfs_rq, exec_clock, delta_exec);
+    delta_exec_weighted = calc_delta_fair(delta_exec, curr);
+
+    curr->vruntime += delta_exec_weighted;
+    update_min_vruntime(cfs_rq);
+
+  #if defined CONFIG_SMP && defined CONFIG_FAIR_GROUP_SCHED
+    cfs_rq->load_unacc_exec_time += delta_exec;
+  #endif
+  }
+#+END_SRC
+
+
+update_curr()是有系统定时器周期性调用的, 因此无论进程处于可运行, 还是被堵塞, vruntime 可以准确的测量给定进程的运行时间,
+而且可知道谁应该是下一个被运行的进程.
+
+** 进程选择
+   CFS 调度算法的核心, 选择具有最小的 vruntime 的 task.
+
+   CFS 使用红黑树来组织可运行进程队列, 并利用其迅速找到最小 vruntime 值的进程.
+
+   在 Linux 值里面, 红黑树被称为 rbtree, 自平衡二叉树.
+
+*** 挑选下一个任务
+    假设有一个红黑树存储了系统中所有可运行进程. 其节点的键值便是可运行进程的 vruntime.
+    
+    CFS 调度器选取待运行的下一个进程, 是所有进程中 vruntime 最小的那个, 它对应的是树中最左侧的叶子节点.
+
+    CFS 的进程选择算法可简单总结在"运行 rbtree 树中最左边叶子节点代表的进程".
+
+    实现这一个过程的函数是__pick_next_entity()
+
+    #+BEGIN_SRC c
+      static struct sched_entity *__pick_first_entity(struct cfs_rq *cfs_rq)
+      {
+        struct rb_node *left = cfs_rq->rb_leftmost;
+
+        if (!left)
+          return NULL;
+
+        return rb_entry(left, struct sched_entity, run_node);
+      }
+
+      static struct sched_entity *__pick_next_entity(struct sched_entity *se)
+      {
+        struct rb_node *next = rb_next(&se->run_node);
+
+        if (!next)
+          return NULL;
+
+        return rb_entry(next, struct sched_entity, run_node);
+      }
+    #+END_SRC
+
+    实际上 linux 把最左叶子点点缓存在一个 rb_leftmost 字段中, 因此可直接调用.
+
+
+*** 向树中加入进程
+    CFS 把进程加入 rbtree 中, 以及缓存最左叶子节点的过程发生在进程变为可运行状态(被唤醒), 或者是通过 fork()调用第一次创建进程时候.
+    enqueue_entity()实现了这个过程.
+
+    #+BEGIN_SRC c
+      static void
+      enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
+      {
+        /*
+         ,* Update the normalized vruntime before updating min_vruntime
+         ,* through callig update_curr().
+         ,*/
+        if (!(flags & ENQUEUE_WAKEUP) || (flags & ENQUEUE_WAKING))
+          se->vruntime += cfs_rq->min_vruntime;
+
+        /*
+         ,* Update run-time statistics of the 'current'.
+         ,*/
+        update_curr(cfs_rq);
+        update_cfs_load(cfs_rq, 0);
+        account_entity_enqueue(cfs_rq, se);
+        update_cfs_shares(cfs_rq);
+
+        if (flags & ENQUEUE_WAKEUP) {
+          place_entity(cfs_rq, se, 0);
+          enqueue_sleeper(cfs_rq, se);
+        }
+
+        update_stats_enqueue(cfs_rq, se);
+        check_spread(cfs_rq, se);
+        if (se != cfs_rq->curr)
+          __enqueue_entity(cfs_rq, se);
+        se->on_rq = 1;
+
+        if (cfs_rq->nr_running == 1)
+          list_add_leaf_cfs_rq(cfs_rq);
+      }
+    #+END_SRC
+
+    该函数更新运行时间和其他一些统计数据, 然后调用__enqueue_entity()进行插入操作.
+
+    #+BEGIN_SRC c
+      /*
+       ,* Enqueue an entity into the rb-tree:
+       ,*/
+      static void __enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
+      {
+        struct rb_node **link = &cfs_rq->tasks_timeline.rb_node;
+        struct rb_node *parent = NULL;
+        struct sched_entity *entry;
+        s64 key = entity_key(cfs_rq, se);
+        int leftmost = 1;
+
+        /*
+         ,* Find the right place in the rbtree:
+         ,*/
+        while (*link) {
+          parent = *link;
+          entry = rb_entry(parent, struct sched_entity, run_node);
+          /*
+           ,* We dont care about collisions. Nodes with
+           ,* the same key stay together.
+           ,*/
+          if (key < entity_key(cfs_rq, entry)) {
+            link = &parent->rb_left;
+          } else {
+            link = &parent->rb_right;
+            leftmost = 0;
+          }
+        }
+
+        /*
+         ,* Maintain a cache of leftmost tree entries (it is frequently
+         ,* used):
+         ,*/
+        if (leftmost)
+          cfs_rq->rb_leftmost = &se->run_node;
+
+        rb_link_node(&se->run_node, parent, link);
+        rb_insert_color(&se->run_node, &cfs_rq->tasks_timeline);
+      }
+    #+END_SRC
+
+
+*** 从树中删除进程
+    从 rbtree 中删除进程, 发生在进程堵塞或者终止时.
+
+    #+BEGIN_SRC c
+      static void
+      dequeue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
+      {
+        /*
+         ,* Update run-time statistics of the 'current'.
+         ,*/
+        update_curr(cfs_rq);
+
+        update_stats_dequeue(cfs_rq, se);
+        if (flags & DEQUEUE_SLEEP) {
+      #ifdef CONFIG_SCHEDSTATS
+          if (entity_is_task(se)) {
+            struct task_struct *tsk = task_of(se);
+
+            if (tsk->state & TASK_INTERRUPTIBLE)
+              se->statistics.sleep_start = rq_of(cfs_rq)->clock;
+            if (tsk->state & TASK_UNINTERRUPTIBLE)
+              se->statistics.block_start = rq_of(cfs_rq)->clock;
+          }
+      #endif
+        }
+
+        clear_buddies(cfs_rq, se);
+
+        if (se != cfs_rq->curr)
+          __dequeue_entity(cfs_rq, se);
+        se->on_rq = 0;
+        update_cfs_load(cfs_rq, 0);
+        account_entity_dequeue(cfs_rq, se);
+        update_min_vruntime(cfs_rq);
+        update_cfs_shares(cfs_rq);
+
+        /*
+         ,* Normalize the entity after updating the min_vruntime because the
+         ,* update can refer to the ->curr item and we need to reflect this
+         ,* movement in our normalized position.
+         ,*/
+        if (!(flags & DEQUEUE_SLEEP))
+          se->vruntime -= cfs_rq->min_vruntime;
+      }
+    #+END_SRC
+    和红黑树添加进程一样, 实际工作是由辅助函数__dequeue_entity()完成.
+
+    #+BEGIN_SRC c
+      static void __dequeue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
+      {
+        if (cfs_rq->rb_leftmost == &se->run_node) {
+          struct rb_node *next_node;
+
+          next_node = rb_next(&se->run_node);
+          cfs_rq->rb_leftmost = next_node;
+        }
+
+        rb_erase(&se->run_node, &cfs_rq->tasks_timeline);
+      }
+    #+END_SRC
+
+** 调度器入口
 * 磁盘
 
   1. 寻道时间
