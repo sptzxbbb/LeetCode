@@ -15,7 +15,6 @@ void Dijkstra(int n, int v, int *dist) {
 		} else {
 			dist[i] = graph[v][i];
 		}
-
 		visited[i] = false;
 	}
 	visited[v] = true;
@@ -27,15 +26,15 @@ void Dijkstra(int n, int v, int *dist) {
 		for (int j = 0; j < n; ++j) {
 			if (!visited[j] && dist[j] < shortest) {
 				shortest = dist[j];
-				u = j;    
+				u = j;
 			}
 		}
 		visited[u] = true;
 
 		// update sist
 		for (int i = 0; i < n; ++i) {
-			if (!visited[i] && graph[u][i] != MAX) 
-				dist[i] = min(dist[i], dist[u] + graph[u][i]);                  
+			if (!visited[i] && graph[u][i] != MAX)
+				dist[i] = min(dist[i], dist[u] + graph[u][i]);
 		}
 	}
 }
@@ -49,7 +48,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		int a, b, x; 
+		int a, b, x;
 		for (int i = 0; i < m; ++i) {
 			cin >> a >> b >> x;
 			if (graph[a][b] > x) {

@@ -16,9 +16,34 @@
   + 排序, 双指针, 时间:O(NlogN + N)
 
 * 最大连续子数组和
+  sum[0] = a[0]
+  sum[i] = max(sum[i - 1] + a[i], a[i])
+  maxSum = max(sum[i], maxSum)
 
-* 最长子序列
+* 最长公共子序列
+  dp[i][j]: a[:i]和 b[:j]之间的最长公共子序列
+
+  dp[1][1] = same(1, 1)
+  dp[i][j] = max(dp[i - 1][j - 1]+ same(i, j), f[i - 1][j], f[i][j - 1])
+
+  
+* 硬币面值
+  dp[i][sum]: 前 i 中硬币组成 sum 的组合数目.
+
+  dp[i][0] = 1
+  dp[i][sum] = sum(dp[i - 1][sum - k * v[i]]) (sum - k*v[i] >= 0)
 
 * 最长子串
+  f[i, j] = f[i - 1, j - 1] + 1 (A[i]==B[j])
+  f[i, j] = 0 (otherwise)
+
 
 * 最长回文子串
+
+* 排列组合
+  从 n 个元素中取出 m 个元素进行排列/组合.
+** 组合
+   一个位图数组标记每个元素状态, 取/不取. DFS 即可.
+
+** 排列
+   

@@ -261,7 +261,8 @@
       18. 进程地址空间
       1) mm: 指向进程所拥有的内存描述符
       2) active_mm: active_mm 指向进程运行时所使用的内存描述符
-      对于普通进程而言，这两个指针变量的值相同。但是，内核线程不拥有任何内存描述符，所以它们的 mm 成员总是为 NULL。当内核线程得以运行时，它的 active_mm 成员被初始化为前一个运行进程的 active_mm 值
+      对于普通进程而言，这两个指针变量的值相同。但是，内核线程不拥有任何内存描述符，所以它们的 mm 成员总是为 NULL。当内核线程得以运行时，
+      它的 active_mm 成员被初始化为前一个运行进程的 active_mm 值
     ,*/
     struct mm_struct *mm, *active_mm;
 
@@ -1473,6 +1474,281 @@ update_curr()是有系统定时器周期性调用的, 因此无论进程处于�
 
   系统中的每个物理页都要分配一个这样的结构体.
 
+** 获得页
+   内核提供了一种请求内存的底层机制, 并提供了对它进行访问的几个接口.
+   这些接口都是以页为单位分配内存, 定义于<linux/gfp.h>中. 最核心的函数是:
+   #+BEGIN_SRC c
+     struct page * alloc_pages(gfp_t gfp_mask, unsigned int order)
+   #+END_SRC
+   该函数分配 2^order(1<<order)个连续的物理页, 并返回一个指针, 该指针指向第一个页的 page 结构体.
+   如果出错, 返回 NULL.
+
+   可以用下面这个函数把给定的页转换成它的逻辑地址.
+   #+BEGIN_SRC c
+     void * page_address(struct page *page)
+   #+END_SRC
+   该函数返回一个指针, 指向给定物理页所在的逻辑地址.
+
+   如果你无须用到 struct page, 可以调用
+   #+BEGIN_SRC c
+     unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
+   #+END_SRC
+   与 alloc_pages()作用相同, 不过它直接返回所请求第一个页的逻辑地址. 因为页是连续的, 所以其他页也会
+   紧随其后.
+   
+*** 获得填充为 0 的页
+
+*** 释放页
+    当页不再需要时, 可以用下面的函数释放它们.
+    #+BEGIN_SRC c
+      void __free_pages(struct page *page, unsigned int order)
+      void free_pages(unsigned long addr, unsigned int order)
+      void free_pages(unsgined long addr)
+    #+END_SRC
+
+    调用_get_free_pages()之后注意要进行错误检查. 因为内核分配可能失败, 因此代码必须进行检查并做相应的处理.
+    这意味着, 之前所作的工作可能前功尽弃, 因此程序刚开始就进行内存分配的工作是很有意义的.
+
+    对于常用的以字节为单位的分配来说, 内核提供的函数是 kmalloc().
+
+*** kmalloc()
+    kmalloc()和用户空间的 malloc()一组函数很像, 只不过它多了一个 flags 参数.
+    kmalloc()是一个简单的接口, 用于获得以字节为单位的一块内核内存. 如果需要一整页的话, 前面讨论的页分配接口
+    可能是更好的选择. 但是, 对于大多数内核分配来说, kmalloc()用的更多.
+
+    <linux/slab.h>
+    #+BEGIN_SRC c
+      void * kmalloc(size_t size, gfp_t flags)
+    #+END_SRC
+    
+*** gfp_mask 标志
+    不管在低级页分配函数中, 还是 kmalloc()中, 都用到了分配器标志.
+
+    标志分三类
+    1. 行为修饰符, 表示内核应当如何分配所需的内存.
+    2. 区修饰符, 表示从哪儿分配内存.
+    3. 类型, 组合了行为修饰符和区修饰符, 将各种可能用到的组合归纳为不同类型.
+
+*** kfree()
+    kmalloc()的另一端就是 kfree(), kfree 声明于<linux/slab.h>中.
+    #+BEGIN_SRC c
+      void kfree(const void *ptr)
+    #+END_SRC
+    kfree()函数释放由 kmalloc()分配出来的内存块. 调用 kfree(NULL)是安全的.
+
+*** vmalloc()
+    vmalloc()类似于 kmalloc(), 前者分配的内存虚拟地址是连续的, 而物理地址无需连续. 这也是用户空间分配函数的工作方法: 由
+    malloc()返回的页在进程的虚拟地址空间内是连续的, 这不保证物理地址也是连续的.
+    kmalloc()保证了虚拟地址和物理地址都是连续的.
+    vmalloc()之确保了虚拟地址的连续, 它通过分配非连续的物理内存块, 再修正页表, 把内存映射到逻辑地址空间的连续区域中.
+    很多内核代码都用 kmalloc()来获得内存, 而不是 vmalloc(). 这主要是出于性能的考虑. vmalloc()必须专门建立页表项, 通过 vmalloc()
+    获得的页必须一个一个的进行映射, 这会导致比内存直接映射大得多的 TLB 抖动. 因此, vmalloc()不得已才使用, 例如要分配大块内存.
+
+*** vfree()
+    通过 vmalloc()分配的内存需要由 vfree()来释放.
+
+*** slab 层
+    
+
+
+* 进程地址空间
+  内核使用内存描述符结构体表示进程的地址空间, 内存描述符由 mm_struct 结构体, 定义在<linux/mm_types.h>中.
+
+  #+BEGIN_SRC c
+    struct mm_struct {
+      struct vm_area_struct * mmap;   /* list of VMAs */
+      struct rb_root mm_rb;
+      struct vm_area_struct * mmap_cache; /* last find_vma result */
+    #ifdef CONFIG_MMU
+      unsigned long (*get_unmapped_area) (struct file *filp,
+            unsigned long addr, unsigned long len,
+            unsigned long pgoff, unsigned long flags);
+      void (*unmap_area) (struct mm_struct *mm, unsigned long addr);
+    #endif
+      unsigned long mmap_base;    /* base of mmap area */
+      unsigned long task_size;    /* size of task vm space */
+      unsigned long cached_hole_size;   /* if non-zero, the largest hole below free_area_cache */
+      unsigned long free_area_cache;    /* first hole of size cached_hole_size or larger */
+      pgd_t * pgd;
+      atomic_t mm_users;      /* How many users with user space? */
+      atomic_t mm_count;      /* How many references to "struct mm_struct" (users count as 1) */
+      int map_count;        /* number of VMAs */
+
+      spinlock_t page_table_lock;   /* Protects page tables and some counters */
+      struct rw_semaphore mmap_sem;
+
+      struct list_head mmlist;    /* List of maybe swapped mm's.  These are globally strung
+                 ,* together off init_mm.mmlist, and are protected
+                 ,* by mmlist_lock
+                 ,*/
+
+
+      unsigned long hiwater_rss;  /* High-watermark of RSS usage */
+      unsigned long hiwater_vm; /* High-water virtual memory usage */
+
+      unsigned long total_vm, locked_vm, shared_vm, exec_vm;
+      unsigned long stack_vm, reserved_vm, def_flags, nr_ptes;
+      unsigned long start_code, end_code, start_data, end_data;
+      unsigned long start_brk, brk, start_stack;
+      unsigned long arg_start, arg_end, env_start, env_end;
+
+      unsigned long saved_auxv[AT_VECTOR_SIZE]; /* for /proc/PID/auxv */
+
+      /*
+       ,* Special counters, in some configurations protected by the
+       ,* page_table_lock, in other configurations by being atomic.
+       ,*/
+      struct mm_rss_stat rss_stat;
+
+      struct linux_binfmt *binfmt;
+
+      cpumask_t cpu_vm_mask;
+
+      /* Architecture-specific MM context */
+      mm_context_t context;
+
+      /* Swap token stuff */
+      /*
+       ,* Last value of global fault stamp as seen by this process.
+       ,* In other words, this value gives an indication of how long
+       ,* it has been since this task got the token.
+       ,* Look at mm/thrash.c
+       ,*/
+      unsigned int faultstamp;
+      unsigned int token_priority;
+      unsigned int last_interval;
+
+      /* How many tasks sharing this mm are OOM_DISABLE */
+      atomic_t oom_disable_count;
+
+      unsigned long flags; /* Must use atomic bitops to access the bits */
+
+      struct core_state *core_state; /* coredumping support */
+    #ifdef CONFIG_AIO
+      spinlock_t    ioctx_lock;
+      struct hlist_head ioctx_list;
+    #endif
+    #ifdef CONFIG_MM_OWNER
+      /*
+       ,* "owner" points to a task that is regarded as the canonical
+       ,* user/owner of this mm. All of the following must be true in
+       ,* order for it to be changed:
+       ,*
+       ,* current == mm->owner
+       ,* current->mm != mm
+       ,* new_owner->mm == mm
+       ,* new_owner->alloc_lock is held
+       ,*/
+      struct task_struct __rcu *owner;
+    #endif
+
+    #ifdef CONFIG_PROC_FS
+      /* store ref to file /proc/<pid>/exe symlink points to */
+      struct file *exe_file;
+      unsigned long num_exe_file_vmas;
+    #endif
+    #ifdef CONFIG_MMU_NOTIFIER
+      struct mmu_notifier_mm *mmu_notifier_mm;
+    #endif
+    #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+      pgtable_t pmd_huge_pte; /* protected by page_table_lock */
+    #endif
+    };
+  #+END_SRC
+
+  mmap 和 mm_rb 两个不同的数据结构体描述的对象是相同的: 该地址空间中的全部内存区域.
+  前者以链表形式存放, 利于简单,高效的遍历所有元素; 后者以红黑树形式存放, 更适合搜索指定元素.
+  
+  所有的 mm_struct 结构体都通过自身的 mmlist 域连接在一个双向链表中.
+
+** 分配内存描述符 
+   fork()函数利用 copy_mm()函数复制父进程的内存描述符, 也就是 current->mm 域给子进程.
+   而子进程中的 mm_struct 结构体实际上先要通过 allocate_mm()宏从 mm_cachep slab 缓存中
+   分配得到.
+   如果父进程希望和子进程共享地址空间, 可以在调用 cline()时, 设置 CLONE_VM 标志. 我们把这样
+   的进程称作线程. 当 CLONE_VM 被指定后, 内核不会再调用 allocate_mm()函数, 而仅仅需要在调用
+   copy_mm()函数中把 mm 域指向父进程的内存描述符.
+
+** 撤销内存描述符
+   当进程退出时候, 内核会调用 exit_mm()函数, 该函数执行一些常规的撤销工作, 同时更新一些统计量.
+   该函数会调用 mmput()函数减少 mm_users, 如果降为 0, 调用 mmdrop(), 减少 mm_count.
+   如果 mm_count 也为 0, 说明该内存描述符不再有任何使用者, 那么调用 free_mm()宏把 mm_struct 结构体
+   归还到 mm_cachep slab 缓冲中.
+
+** mm_struct 和内核线程
+   内核线程没有进程地址空间, 也没有内存描述符. 因此它的 mm 域为 NULL, 内核会更新内核线程的 active_mm, 使其
+   指向上一个进程的内存描述符. 需要时候, 内核线程可以使用上一个进程的页表. 因为内核线程不访问用户空间的内存, 所以它们
+   仅仅使用地址空间和内核线管的信息, 这些信息的含义和普通进程完全相同.
+
+** 虚拟内存区域
+   内存区域由 vm_area_struct 结构体描述. 内存区域在 Linux 内核中经常称为虚拟内存区域(virtual memory Areas, VMAs).
+   
+#+BEGIN_SRC c
+   /*
+    ,* This struct defines a memory VMM memory area. There is one of these
+    ,* per VM-area/task.  A VM area is any part of the process virtual memory
+    ,* space that has a special rule for the page-fault handlers (ie a shared
+    ,* library, the executable area etc).
+    ,*/
+   struct vm_area_struct {
+     struct mm_struct * vm_mm; /* The address space we belong to. */
+     unsigned long vm_start;   /* Our start address within vm_mm. */
+     unsigned long vm_end;   /* The first byte after our end address
+                within vm_mm. */
+
+     /* linked list of VM areas per task, sorted by address */
+     struct vm_area_struct *vm_next, *vm_prev;
+
+     pgprot_t vm_page_prot;    /* Access permissions of this VMA. */
+     unsigned long vm_flags;   /* Flags, see mm.h. */
+
+     struct rb_node vm_rb;
+
+     /*
+      ,* For areas with an address space and backing store,
+      ,* linkage into the address_space->i_mmap prio tree, or
+      ,* linkage to the list of like vmas hanging off its node, or
+      ,* linkage of vma in the address_space->i_mmap_nonlinear list.
+      ,*/
+     union {
+       struct {
+         struct list_head list;
+         void *parent; /* aligns with prio_tree_node parent */
+         struct vm_area_struct *head;
+       } vm_set;
+
+       struct raw_prio_tree_node prio_tree_node;
+     } shared;
+
+     /*
+      ,* A file's MAP_PRIVATE vma can be in both i_mmap tree and anon_vma
+      ,* list, after a COW of one of the file pages.  A MAP_SHARED vma
+      ,* can only be in the i_mmap tree.  An anonymous MAP_PRIVATE, stack
+      ,* or brk vma (with NULL file) can only be in an anon_vma list.
+      ,*/
+     struct list_head anon_vma_chain; /* Serialized by mmap_sem &
+               ,* page_table_lock */
+     struct anon_vma *anon_vma;  /* Serialized by page_table_lock */
+
+     /* Function pointers to deal with this struct. */
+     const struct vm_operations_struct *vm_ops;
+
+     /* Information about our backing store: */
+     unsigned long vm_pgoff;   /* Offset (within vm_file) in PAGE_SIZE
+                units, *not* PAGE_CACHE_SIZE */
+     struct file * vm_file;    /* File we map to (can be NULL). */
+     void * vm_private_data;   /* was vm_pte (shared mem) */
+     unsigned long vm_truncate_count;/* truncate_count or restart_addr */
+
+   #ifndef CONFIG_MMU
+     struct vm_region *vm_region;  /* NOMMU mapping region */
+   #endif
+   #ifdef CONFIG_NUMA
+     struct mempolicy *vm_policy;  /* NUMA policy for the VMA */
+   #endif
+   };
+ #+END_SRC
+
 * 系统调用(syscall)  
 ** 系统调用程序
    用户空间的程序无法直接执行内核代码, 因为这意味着读写内核的地址空间, 系统的安全性和稳定性无法保证.
@@ -1506,7 +1782,7 @@ update_curr()是有系统定时器周期性调用的, 因此无论进程处于�
    从用户空间读数据, 内核提供了 copy_from_user().
 
    当编写完一个系统调用后, 需要把它注册成一个正式的系统调用.
-   1. 首先, 在系统调用表的最后加入一个表项, 从 0 开始, 系统调用在该表中的位置就是它的系统调用号.
+   1. 首先, 在系统调用表的最后加入一个表项, 从 0 开始, 系统调用在该表中的位置就是它的系统调用号, 该表位于 entry.s.
    2. 对于所支持的各种体系架构, 系统调用号都必须定义于<asm/unistd.h>
    3. 把系统调用放入 kernel/ 目录下, 最后编译进入内核映像.
       
@@ -1555,6 +1831,51 @@ update_curr()是有系统定时器周期性调用的, 因此无论进程处于�
    此外, 如果读取的序列号值是偶数, 说明写操作没有发生.(锁初值为 0, 写锁会使值变成奇数, 释放时候变成偶数.)
 
    seq 锁对写者更有利, 读者不影响写锁.
+
+* 定时器和时间管理
+  硬件为内核提供了一个系统定时器用以计算流逝的时间. 系统定时器以某种频率自行触发, 该频率可以通过编程设定, 称为节拍率.
+
+  当时间中断发生时, 内核通过一种特殊的中断处理程序对其进行处理.
+
+  因为预设的节拍率对内核来说是可知的, 所以内核知道连续两次时间中断的间隔时间, 这个时间称为节拍(tick).
+  内核就是靠这种已知的时钟中断来计算墙上时间和系统运行时间. 墙上时间, 也即是实际时间, 对用户空间的程序来说是最重要的.
+  内核通过时间中断维护实际时间.
+  系统运行时间(自系统启动开始经过的时间)对用户空间和内核都很有用, 因为很多程序都必须清楚流逝的时间. 通过两次读取运行时间再计算它们的差,
+  就可以得到相对的流逝时间.
+
+  给出一些时间中断周期执行的工作:
+  + 更新系统运行时间
+  + 更新实际时间
+  + 均衡调度程序中更处理器的运行队列
+  + 检查当前进程是否涌进了自己的时间片, 如果用尽, 重新进行调度.
+  + 运行超时的动态定时器.
+  + 更新资源消耗和处理器时间的统计值.
+
+** 节拍率: HZ  
+   系统定时器频率是通过静态预处理定义的, 也就是 HZ, 在系统启动时按照 HZ 值对硬件进行设置. 体系结构不同, HZ 值也不同.
+
+   x86 体系结构中, 系统定时器频率默认为 100, 也就是 i386 处理器上每秒钟调用时间中断 100 次(每 10ms 一次).
+
+*** 高 HZ 好处
+   + 内核节拍器能够以更高的频度和更高的准确度运行.
+   + 依赖定时值的系统调用, 例如 poll()和 select(), 能够以更高的精度运行.
+   + 对诸如资源消耗和系统运行时间等的测量会有更精细的解析度.
+   + 提高进程抢占的准确度.
+
+*** 高 HZ 坏处
+    时间中断频率越高, 系统负担越重. 因为 CPU 要花更多时间执行时间中断程序, 而且会频繁打乱处理器高速缓存并增加耗电.
+
+** jiffies
+   全局变量 jiffies 用来记录自系统启动以来产生的节拍的总数, 类型为无符号长整形.
+
+** 硬时钟和定时器
+   体系结构提供了两种设备进行计算时间, 一种是上述的系统定时器; 另一种是实时时钟.
+
+   实时时钟, RTC, 用来持久存放系统时间的设备, 即便系统关闭后, 他也可以靠主板上的微型电池提供的店里保持系统的计时.
+   当系统启动时, 内核通过读取 RTC 来初始化实际时间, 该时间放在 xtime 变量中. 实时时钟的最主要作用是在启动时初始化 xtime 变量.
+
+
+
 
 
 * 磁盘

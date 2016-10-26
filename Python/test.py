@@ -1,5 +1,10 @@
 import sys
 
-l1 = 0
-l2 = 1L
-print(sys.getsizeof(l1), sys.getsizeof(l2))
+a = 1
+b = 2
+
+a ^= b
+b ^= a
+a ^= b
+
+print(a, b)
