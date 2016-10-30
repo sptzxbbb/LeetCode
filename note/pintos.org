@@ -1,0 +1,430 @@
+* Loading
+** Loader
+  第一步, BIOS 加载"threads/loader.S", 也即是 boot loader.
+  Loader 负责找到 disk 上的内核并且加载到内存当中, 和跳转到开始位置.
+  
+  BIOS 在第一个 disk 的第一个扇区找到 master boot record(MRB).
+
+  Loader 第一件工作是读取每块 disk 的 partition table 来找到内核.
+
+  最后一件工作是提取加载后的内存映像的入口, 并且转移控制给它. 入口的位置不确定, 当内核的 ELF 头部含有一个指针指向它.
+  Loader 提取这个指针并且跳到它指向的位置.
+
+  每次运行 Pintos 时候,Pintos 把命令行参数保存在硬盘上的 boot loader 里面, kernel 在启动时候从内存中的 boot loader
+  中读取参数.
+
+** Low-Level Kernel Initialization
+   Loader 最后转移控制权, 也就是"threads/start.S"中的 start()函数.
+
+   这段代码的工作是把 CPU 从 16 位的实时模式切换到 32 位的保护模式.
+
+   第一个任务是获取机器的内存大小, 通过查询 BIOS. 函数把内存大小按页保存在全局变量 init_ram_pages.
+
+   CPU 初始化第一个工作是启动 A20 总线, 使得 Pintos 能访问超过 1MB 的内存.
+   下一步, loader 创建一张基础页表. 保存了 64MB 的虚拟内存到相同物理地址的映射(从虚拟地址 0 开始).
+   页表初始化后, 我们加载 CPU 的控制寄存器来启动保护模式和页表, 同时设置段寄存器.
+   我们还不能在保护模式下处理中断, 所以我们 disable 中断. 最后一步是调用 main().
+
+** High-Level Kernel Initialization
+   当 main()开始时, 系统很多地方仍未初始化. 因此, 首先调用其他 Pintos 模块的初始化函数.
+   通常命名为 module_init(), module 是模块名字.
+
+   第一步是调用 bss_init(), 初始化内核的"BSS", 即未初始化的全局变量 一般初始化为 0, 我们调用 memset()来写 0.
+   
+   第二步调用 read_command_line()来把内核命令行拆成若干参数, parse_options()来读入命令行开始的选项.
+
+   第三步调用 thread_init()来初始化线程系统. 然后初始化终端和打印出启动信息到终端.
+
+   第四步我们要初始化内核的内存系统. palloc_init()建立了内核的页分配器, 一次能分发一到多个页.
+   malloc_init()建立了任意内存大小的内存分配器. paging_init()建立了一张内核的页表.
+
+   在 project2 以及后面的 project, main()还要调用 tss_init()和 gdt_init().
+
+   第五步, 我们初始化终端系统. intr_init()设置了 CPU 的中断描述符表(IDT)来处理中断.
+   然后 timer_init()和 kbd_init()来处理 timer 中断和 keyboard 中断. 
+   input_init()把串行和 keyboard 输入合并成一个流.
+   在 project2 和后面的 project, 我们还需要准备处理用户进程使用 exception_init()和 syscall_init()造成
+   的中断.
+
+   现在中断已经设置好了, 我们可以调用 thread_start()来启动 scheduler, 它会创建一个 idle 线程并 enable 中断.
+   当中断 enabled, 中断驱动的串口 I/O 才能工作, 所以我们使用 serial_init_queue()来切换到那个模式.
+   最后, timer_calibrate()校正 timer 到精准的细小延迟.
+   
+   如果文件系统也被编译了, 就像 project2 那样, 我们还要用 ide_init()初始化 IDE disk, 用 filesys_init()来
+   初始化文件系统.
+
+   在这里 Boot 就完整了, 我们打印出一条信息.
+
+   函数 run_action()开始解析和执行内核的命令行参数, 例如 run a test 或者 run a user program.
+   
+   最后, 如果-q 在命令行参数中, 我们可以调用 shutdown_power_off()来关闭 machine simulator.
+   否则, main()要调用 thread_exit(), 这会使得其他 running 线程继续 running.
+
+** 物理内存映射
+   @headitem Memory Range
+   Owner	Contents
+   00000000--000003ff	CPU	Real mode interrupt table.
+   00000400--000005ff	BIOS	Miscellaneous data area.
+   00000600--00007bff	--	---
+   00007c00--00007dff	Pintos	Loader.
+   0000e000--0000efff	Pintos	Stack for loader; kernel stack and struct thread for initial kernel thread.
+   0000f000--0000ffff	Pintos	Page directory for startup code.
+   00010000--00020000	Pintos	Page tables for startup code.
+   00020000--0009ffff	Pintos	Kernel code, data, and uninitialized data segments.
+   000a0000--000bffff	Video	VGA display memory.
+   000c0000--000effff	Hardware	Reserved for expansion card RAM and ROM.
+   000f0000--000fffff	BIOS	ROM BIOS.
+   00100000--03ffffff	Pintos	Dynamic memory allocation.
+
+* Threads(线程)
+** struct thread
+   pintos 线程主要数据结构是 struct thread, 声明在"threads/thread.h"
+   
+   每个 struct thread 占用它页表的起始位置, 其余用于 thread 的 stack.
+ 	
+                  4 kB +---------------------------------+
+                       |          kernel stack           |
+                       |                |                |
+                       |                |                |
+                       |                V                |
+                       |         grows downward          |
+                       |                                 |
+                       |                                 |
+                       |                                 |
+                       |                                 |
+                       |                                 |
+                       |                                 |
+                       |                                 |
+                       |                                 |
+sizeof (struct thread) +---------------------------------+
+                       |              magic              |
+                       |                :                |
+                       |                :                |
+                       |              status             |
+                       |               tid               |
+                  0 kB +---------------------------------+
+
+
+   这有两点需要注意.
+   首先, struct thread 的大小不能太大, 否则内核栈的空间就不足够, 大小应该在 1kb 以下.
+   其次, 内核栈也不能太大. 否则会影响 struct thread. 因此, 内核不应该分配太大的非本地变量.
+   使用 malloc()或者 paglloc_get_page()来动态分配.
+
+   + tid_t tid: 线程唯一标识符. 默认, tid_t 是 int 的 typedef 和新线程的 tid 会取下一个大的数值. 
+     initial process 的 tid 为 1.
+   + enum thread_status status: 线程的状态.
+     + THREAD_RUNNING: 正在运行, 每个时刻只有一个线程处于这个状态. thread_current()返回这个线程.
+     + THREAD_READY: 就绪的线程, 可被调度器选作即将运行的线程, 被保存在一个双头链表, ready_list 当中.
+     + THREAD_BLOCKED: 被阻塞的线程. 调用 thread_unblock()把它设置为 THREAD_READY.
+     + THREAD_DYING: 当切换到下一个线程时, scheduler 会 destory 这个线程.
+   + char name[16]: 线程名字.
+   + uint8_t *stack: 当线程 RUNNING 时候, CPU 的 stack 指针 register 记录栈顶位置. 当 CPU 切换到
+     下一线程时候, stack 记录 CPU 的 stack 指针 register 的值. 线程不用其他 members 保存其他寄存器的值, 
+     因此它们会被保存在栈上, 因此只需要记录栈顶指针.
+     
+     当中断发生, 无论是内核还是用户线程, 一个 struct intr_frame 会被压入栈中. 当在用户程序中发生中断时候,
+     struct intr_frame 总是在 page 的最上部.
+   + int priority: 一个线程优先级, PRI_MIN(0)从 PRI_MAX(63). 值小, 优先级低.
+   + struct list_elem allelem: 链表节点, 把线程链接进所有 thread 的 list 里面. 每个线程被创造时,
+     它会加入到这个 list, 退出运行时, 从这个 list 中移除. 遍历所有 thread 时候, 可以用 thread_foreach().
+   + struct list_elem elem: 链表节点. 表明 thread 所在的 ready_list 或者某个 semaphore 的等待队列通过
+     sema_down().
+   + uint32_t *pagedir: project2 和之后才存在.
+   + unsigned magic: 总是设置成 THREAD_MAGIC, 是一个"threads/thread.c"中设置的数字, 用于检测 stack overflow.
+     thread_current()会检查这个值设置为 THREAD_MAGIC. Stack overflow 一般会改变这个值, 引发 assertion.
+   一般来说, 把它放在 struct 末尾.
+
+** Thread Functions
+   "threads/thread.c"实现了一些公共函数提供线程支持.
+   
+   + void thread_init(void)
+     由 main()调用来初始化 thread system. 主要目的是创建一个 struct thread 给 Pintos 的 initial thread.
+     Pintos loader 把 initial thread's stack 放在一页的 top, 和其他 thread 的位置一样.
+     
+     在 thread_init()运行之前, thread_current()会 fail 因此当前进程的 magic 值不对. 大量函数会调用 thread_current(),
+     因此 thread_init()在初始化的早期会被调用.
+   + void thread_start(void):
+     由 main()调用来启动 scheduler. 创建 idle thread, 也即是没有线程 ready 时候被调度的 thread. 然后 enable interrupt,
+     副作用会启动 scheduler, 因为 scheduler 在 timer interrupt 返回时候 run, 使用 intr_yield_on_return().
+   + void thread_tick(void):
+     每一 tick 由 timer interrupt 调用, 记录 thread 的数据和触发 scheduler 当一个时间片耗尽时.
+   + void thread_print_stats(void):
+     在 Pintos shutdown 时候打印线程 statistics.
+   + tid_t thread_create(const char *name, int priority, thread_func *func, void *aux):
+     创建新 thread, 返回 tid.
+     thread_create() 分配了一页给 thread 的 struct thraed 和 stack, 并初始化了 members, 然后设置了一系列的 fake stack frames.
+     thread 会在 blocked state 被初始化, 然后 unblocked.
+
+   + void thread_block(void):
+     把 running thread 设置为 blocked state. 这个线程不会再次 run, 除非对它调用 thread_unlbock().
+   + void thread_unblock(struct thread *thread):
+     把一个 blocked state 的 thread 变成 ready 
+   + struct thread *thread_current(void):
+   + tid_t thread_tid(void):
+   + const char *thread_name(void):
+   + void thread_exit(void) NO_RETURN:
+     使当前 thread 退出, 因此不会有返回值.
+   + void thread_yield(void):
+     把 CPU 退让给 scheduler, 后者选择一个新 thread 来 run. 新 thread 可以是当前的 current thread.
+   + void thread_foreach(thread_action_func *action, void *aux):
+   + int thread_get_priority(int)
+   + void thread_set_priority(int new_priority)
+   + int thread_get_nice(void)
+   + void thread_set_nice(int new_nice)
+   + int thread_get_recent_cpu(void):
+   + int thread_get_load_avg(void)
+
+** Thread Switching
+   schedule()负责线程切换. 位于"threads/thread.c" 和只能被 3 个公共线程函数调用: 
+   thread_block(), thread_exit()和 thread_yield().
+   这些函数调用 scheduler()之前, 它们 disable interrupts(或者确保已经 disabled), 然后改变当前进程的 state 为 RUNNING 之外的 state.
+   schedule()很简短, 但十分有技巧. 它把 current thread 记录在局部变量 cur, 把即将运行的 thread 记录在局部变量 next(通过调用 next_thread_to_run()),
+   然后调用 switch_threads()来真正切换 thread. 即将运行的 thread 在 switch_threads()里也是 running.
+
+   switch_threads()是一个汇编语言程序, 在"threads/switch.S"里面. 它把寄存器保存在 stack 里, 然后把 CPU 寄存器当前的 stack pointer
+   记录在 thread's stack member 里面, 恢复新的 thread's stack 进入 CPU 的 stack pointer, 然后从 stack 里恢复其他寄存器, 最后返回.
+
+   剩余的工作由 thread_schedule_tail(). 它把 new thread 标记成 running. 如果之前的 thread 是 dying state, 它还要释放包含了
+   thread's struct thread 和 stack 的 page. 这些不能在 thread switch 之前完成, 因为 thread switch 需要这些信息.
+
+   第一次运行 thread 是 special case. 当 thread_create()创建一个 new thread, 它要经历很多步才能启动. 特别是当一个 new thread 还没有
+   运行过之前, 没有办法按照 scheduler 的期望在 switch_threads()里面运行. 为了解决这个问题, thread_create()创建了一些 fake stack
+   frame 在 new thread's stack.
+
+   最上面(topmost)fake stack frame 是为了 switch_threads(), 由 struct switch_threads_frame 表示.
+   这 frame 最重要的部分是 eip member, 返回地址. 我们把 eip 指向 switch_entry(), 表明它是叫做 switch_entry()的函数.
+   
+   下一个 fake stack frame 是为了 switch_entry(), 一个汇编程序, 位于"threads/switch.S", 调整 stack pointer, 调用
+   thread_schedule_tail()(这个 case 的 special 就在于 thread_schedule_tail()和 schedule()分开了), 然后返回.
+   我们填充 stack frame 使得它返回进入 kernel_thread(), 一个在"threads/thread.c".
+
+   最后一个 fake frame 是为了 kernel_thread(), 它 enable interrupts 和调用 thread's function(传入 thread_create()的参数).
+   如果 thread's function 返回, 它会调用 thread_exit()来结束 这个 thread.
+   
+
+* Synchronization
+** Disabling Interrupts  
+   最原始的同步方法是 disable interrupts, 也就是阻止 CPU 应答 interrupt. 如果 interrupts 被关闭, 没有其他 thread
+   可以抢占 running thread, 因为 thread preemption 是通过 timer interrupts 驱动. 如果 interrupt 被打开, 就像一般情况下那样,
+   running thread 可能在任何时间被另一个 thread 抢占, 无论是在两条 C 语句之间或者一条的执行过程之中.
+
+   顺便一提, 这意味着 Pintos 是一个抢占式内核, 也就是说, kernel thread 可以在任何时间被抢占. 传统 Unix system 是不可抢占的, 也就是说,
+   kernel threads 只有显示调用 schedule()才能被抢占.(在两个 Model 里面, User programs 可以在任意时间被抢占). 正如你所想的, 抢占式
+   内核要求更显式的 synchronization.
+
+   我们应该很少需要直接设置 interrupt state. 大多数时间都应该用其他 synchronization 原语操作. disable interrupts 的主要目的在于
+   用 external interrupt handlers 同步 kernel threads, 因为 kernel thread 无法 sleep, 也因此无法使用其他形式的 synchronization.
+
+   某些 external interrupts 无法被推迟执行, 即使 disabling interrupts. 这些 interrupt, 叫做 non-maskable interrupts(NMIs),
+   一般用于紧急情况, 例如, 计算机着火了. Pintos 不处理 non-maskable interrupts.
+
+   enable 和 disable interrupts 的函数位于"threads/interrupt.h".
+   + Type: enum intr_level
+     One of INTR_OFF or INTR_ON, 表示 interrupt 的 on 和 off.
+   + Function: enum intr_level intr_get_level(void)
+     获取当前 interrupt state.
+   + Function: enum intr_level intr_set_level(enum intr_level level)
+     设置 interrupt, 返回之前的 interrupt state.
+   + Function: enum intr_level intr_enable(void)
+     打开 interrupt, 返回之前的 interrupt state.
+   + Function: enum intr_level intr_disable(void)
+     关闭 interrupt, 返回之前的 interrupt state.
+
+** Semaphores
+   一个 semaphore 是一个非负整数, 两个原子操作符来操作它, "Down or P", "Up or V".
+   
+   Pintos's semaphore 类型和操作定义于"threads/synch.h".
+
+   + Type: struct semaphore
+   + Function: void sema_init(struct semaphore *sema, unsigned value)
+     用给定初始化值 value 初始化一个 semaphore.
+   + Function: void sema_down(struct semaphore * sema)
+     对 sema 执行"down" or "P"操作.
+   + Function: bool sema_try_down(struct semaphore *sema)
+     尝试执行"down" or "P"操作, 而不等待. 成功返回 true; 失败返回 0.
+   + Function: void sema_up(struct semaphore *sema)
+     执行"Up" or "V"操作. 如果任何 thread 在等待这个 sema, 唤醒一个.
+     
+     不像大多数同步原语, sema_up()可以在一个 external interrupts handler 内部调用.
+
+     semaphore 内部是靠 disabling interrupt, thread blocking (thread_block())和 thread unblocking (thread_unblock())实现的.
+     每个 semaphore 维持一个 waiting thread 的 list.
+
+** Locks
+   一个 lock 就像一个初始值为 1 的 sema. 一个 lock 对应"up"的是"release", 对应"down"的是"acquire".
+   
+   和 semaphore 相比, 一个 lock 有一个额外的约束, 只有一个 thread 可以获得 lock, 称作 lock's owner, 能够释放这个 lock.
+   如果这会构成问题, 那应该使用 semaphore.
+
+   Lock 在 Pinto 里面不可递归, 即拥有 lock A 的 thread 尝试 acquire lock A 会造成错误.
+
+   Lock type 和 function 定义在"threads/synch.h"
+
+   + Type: struct lock
+   + Function: void lock_init(struct lock *lock)
+     初始化一个新的 lock, 这个 lock 目前不被任何 thread 拥有.
+   + Function: void lock_acquire(struct lock *lock)
+     current thread 获得 lock, 如果有必要则等待 owner release lock.
+   + Function: bool lock_try_acquire(struct lock *lock)
+     current thread 尝试获得 lock, 不等待. 返回 False, 如果 lock 已经被拥有.
+   + Function: void lock_release(struct lock *lock)
+     释放 current thread 拥有的 lock.
+   + Function: bool lock_held_by_current_thread(const struct lock *lock)
+     如果 current thread 拥有 lock, 返回 True. 没有函数能确认任意 thread 是否持有 lock.
+
+** Monitors
+   一个 monitor 是一个比 semaphore 或者 lock 更高级的同步. 一个 Monitor 由正在 synchronized 的 data 加上一个 lock, 叫做
+   monitor lock, 和一个或多个 condition varaible 组成. 在它访问 protected data 之前, 一个 thread 首先获得 monitor lock.
+   这个 thread 经常被称作"in the monitor". 当 in the monitor, thread 拥有所有 protected data 的访问权, 当访问完成后, 释放
+   monitor lock.
+
+   Condition variables 允许 code in the monitor 等待一个条件为 True. 每个条件和一个抽象条件关联, 例如, 一些数据已经到达可以被处理,
+   或者 自从用户上次键入的 10 秒后. 当 code in the monitor 需要等待一个条件为 true 时, 它等待关联的 condition variable 释放 lock
+   和等待条件被 signaled. 如果, 另一方面, 它使得这些条件之一为 true, 它 signal condition 来 wake up 一个等待者, 或者"广播"给等带 condition 的
+   所有 thread.
+   
+   Condition 变量 type 和函数定义在"threads/synch.h"
+
+   + Type: struct condition
+   + Funciton: void cond_init(struct condition *cond)
+     初始化 cond 作为一个新的 condition variable.
+   + Function: void cond_wait(struct condition *cond, struct lock *lock)
+     原子性的 release lock 和 wait for cond. 当 cond 被 signaled 后, 在 running 之前, reacquired lock. 在调用这个函数之前, lock 必须被持有.
+   + Function: void cond_signal(struct condition *cond, struct lock *lock)
+
+     发送 signal 和在 wait 里面 wake up 一个都不是原子操作. 因此, 通常 cond_wait()'s 的 caller 必须重新检查 condition 当 wait 完成后.
+     如果有必要的话, 再次 wait.
+     如果任意 thread 在等待 cond, 唤醒它们其中一个. 如果没有 thread 在 waiting, 返回. 在调用这个函数之前, lock 必须被持有.
+   + Funciton: void cond_broadcase(struct condition *cond, struct lock *lock)
+     唤醒所有等待 cond(由 monitor lock 保护)的 thread. 在调用这个函数之前, lock 必须被持有
+
+*** Monitor Example
+** Optimization Barriers
+
+* Interrupt Handling
+  Internal interrupts, 由 CPU 内部指令造成, 一般有 System call, exception.
+  External interrupts, 由 CPU 之外的设备引发, 例如 system timer, keyboard, serial ports, and disks.
+  外部中断是异步的, 意味着指令执行和中断的到达不需要同步. 可以通过 intr_disable()来推迟处理.
+
+** Interrupt Infrastructure
+   当 interrupt 发生时候, CPU 保存它的状态在 thread 的 stack 上, 然后跳到 interrupt handler routine.
+   80x86 架构支持 256 种中断, 从 0 到 255, 每一个都有一个独立的 handler, 定义在一个 array 里面, 叫做 interrupt descriptor table(IDT).
+   
+   在 Pintos, 位于"threads/interrupt.c"的 intr_init()设置了 IDT, 使得每一个指向在"threads/intr-stub.S"唯一入口的入口点,命名为
+   intrNN_stub(), NN 是 interrupt number 的十六进制.
+   由于 CPU 没有提供其他方法来查询 interrupt number, 所以这个 entry point 把 interrupt number 压入了 stack. 然后它跳到了 intr_entry(),
+   它会把所有 CPU 没有压入的 registers 都压栈, 然后调用 intr_handler(), 位于"threads/interrupts.c"
+
+   intr_handler()的主要工作是调用注册处理该 interrupt 的函数. 如果是 external interrupts, 它还会做些额外处理.
+
+   当 intr_handler()返回时, "threads/intr-stub.S"的汇编代码会恢复所有之前保存 CPU register 的值, 重定向 CPU 到 interrupt 的返回.
+
+   + Type: void intr_handler_func(struct intr_frame *frame)
+     
+   + Type: struct intr_frame
+     一个 interrupt handler 的 stack frame, 由 CPU, the interrupt stubs 和 intr_entry()保存.
+     
+     Member of struct intr_frame: uint32_t edi
+     Member of struct intr_frame: uint32_t esi
+   Member of struct intr_frame: uint32_t ebp
+   Member of struct intr_frame: uint32_t esp_dummy
+   Member of struct intr_frame: uint32_t ebx
+   Member of struct intr_frame: uint32_t edx
+   Member of struct intr_frame: uint32_t ecx
+   Member of struct intr_frame: uint32_t eax
+   Member of struct intr_frame: uint16_t es
+   Member of struct intr_frame: uint16_t ds
+   
+   在 interrupted thread 里面 register 的值, 由 intr_entry()压入.
+
+   + Member of struct intr_frame: uint32_t vec_no
+     中断向量号码, [0, 255].
+   + Member of struct intr_frame: uint32_t error_code
+   + Member of struct intr_frame: void (*eip) (void)
+     interrupted thread 下一条指令的地址.
+   + Member of struct intr_frame: void *esp
+     interrupted thread 的 stack 的指针.
+   + Function: const char *intr_name (uint8_t vec)
+     返回中断的名字.
+
+** Internal Interrupt Handling
+   Internal Interrupt 是由 running 的 kernel thread 或者 user process 产生的, 因此一个 internal interrupt 称作在
+   "process text"中产生的.
+
+   在一个 internal interrupt 的 handler 里面, 它会检查传递给 interrupt handler 的 struct intr_frame, 甚至修改它.
+   当 interrupt return, 对 struct intr_frame 的修改会改变 thread 或者 process 的状态. 例如, system call 会把返回值
+   放在 EAX register 里面.
+
+   一般来说, internal interrupt 在 run 时候, interrupt 应该 enabled, 所以它们可以被其他 kernel thread 抢占.
+   因此, 他们需要和其他 thread 在 data 或者其他 resource 上做同步.
+
+   Internal interrupt handlers 可以被递归调用. 举例, 一个 system call handler 尝试读取 user memory 时候,
+   可以引起 page default. 过深的递归可能会 overflow 有限的内核栈.
+
+
+** External Interrupt Handling
+   External interrupt 由 CPU 以外的事件引起. 它们是异步的, 可以在任何 interrupt enabled 的时候调用.
+   我们一般说 external interrupt 运行在"interrupt context"当中.
+   
+   在 external interrupts 里面, 不能递归调用 internal 或者 external 的 interrupt. 因为一个 external interrupts
+   必须要在 interrupt disabled 状态下调用.
+   
+   同样, 一个 external interrupt 不能 sleep 或者 yield, 也即是不能调用 lock_acquire(), thread_yield(),还有其他许多函数.
+   sleep()会导致 interrupted thread 也 sleep, 直到 interrupt handler 再次被 schedule 为止. 这对 interrupted thread 来说
+   十分不公平, 还有可能导致 deadlock.
+
+   一个 external interrupt 会独占机器, 延迟所有其他 activities. 因此外部中断应该执行越快越好.
+
+   External interrupts 被一对 CPU 之外的 devices 控制, 叫做 programmable interrupt controller, PICs for short.
+   当 intr_init()设置 CPU 的 IDT 时候, 它初始化 PICs 来处理 interrupt. 每个 external interrupt 的最后, 都必须通知 PICs.
+   在 intr_handler()会调用 pic_end_of_interrupt()来完成这件事情, 它会恰当的 signal PICs.
+
+   + Function: bool intr_context(void)
+     返回 True, 如果我们在 interrupt context 下运行, 否则 False. 主要用于一些可能 sleep 或者不应该在 interrupt context 下
+     调用的函数里面, 例如 ASSERT(!intr_context()).
+   + Function: void intr_yield_on_return(void)
+     当在一个 interrupt context 中被调用时, 在 interrupt 返回前,使 thread_yield()被调用. 用于 timer interrupt 里面, 当
+     一个 thread 的 timeslice 耗尽时候, schedule 新的 thraed.
+
+
+* Memory Allocation
+  Pintos 有两个内存分配器, 一个以页为单位, 另一个以任意大小的块为单位
+  
+** Page Allocator
+** Block Allocator
+
+* Virtual Address
+
+
+* Page Table
+** Creation, Destruction, and Activation
+** Inspection and Updates
+** Accessed and Dirty Bits
+** Page Table Details
+*** Structure
+*** Page Table Entry Format
+*** Page Directory ENtry Format
+
+* Hash Table
+** Data Types
+** Basic Functions
+** Search Functions
+** Iteration Functions
+** Hash Table Example
+** Auxiliary Data
+** Synchronization
+
+
+
+
+
+
+
+
+
+
+   
+   
+   
+
+   
