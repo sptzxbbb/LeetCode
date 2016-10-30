@@ -391,9 +391,98 @@ sizeof (struct thread) +---------------------------------+
   Pintos 有两个内存分配器, 一个以页为单位, 另一个以任意大小的块为单位
   
 ** Page Allocator
+   声明在"threads/palloc.h". 最常用的是一次分配一页内存, 但也可以一次分配多页内存.
+   Page allocator 把内存分为 kernel pools 和 user pools. 默认, 每个 pool 占用 1MB 以上的系统内存的一半, 但可以被 kernel command
+   line option 改变. User pool 只用于给 user process 分配内存, kernel pool 用于其他用途的内存分配. 直到 Project3 之前, 所有分配
+   都是直接从 kernel pool 中进行.
+   
+   每个 pool 用一个 bitmap 进行管理, 请求 n 页的分配会在 bitmap 里扫描第一个连续 n 位为 false 的区间, 表明 free 的 n pages.
+   设置为 True, 表明 used pages. 也即是"First Fit"算法.
+
+   Page allocator 无法 fragmentation, 也即是即使有 n 页以上的 free pages 也无法分配 n 页连续的页. 因此多页内存的请求越少越好.
+
+   Page 无法在 interrupt context 中 allocate, 但可以被 free.
+   当一页被 free 时候, 所有字节被设置为 0xcc, 方便 debug.
+   
+   + Function: void *palloc_get_page(enum palloc_flags flags)
+   + Funciton: void *palloc_get_multiple(enum palloc_flags flags, size_t page_cnt)
+     分配 1 到多个连续页, 失败时候返回 NULL pointer.
+     flags 的组合如下
+     + Page Allocator Flag: PAL_ASSERT
+       无法分配页时候, panic kernel. 只在 kernel initialization 时候合适用.
+     + Page Allocator Flag: PAL_ZERO
+       返回分配页前, 初始化为 0, 不设置的话, 页内容无法估计.
+     + Page Allocator Flag: PAL_USER
+       从 user pool 分配, 不设置则从 kernel pool 分配
+
+   + Function: void palloc_free_page(void *page)
+   + Function: void palloc_gree_multiple(void *pages, size_t page_cnt)
+     从 page 开始 free 1 到多个连续页. 所有页都必须通过 palloc_get_page()和 palloc_get_multiple()获得.
+
 ** Block Allocator
+   定义于"threads/malloc.h", 可以分配任意大小的块. 建立于 page allocator 之上. Block allocator 返回的 block 是在 kernel pool
+   分配的.
+
+   Block allocator 用两种策略分配内存. 
+   第一种适用于 1kb 或者更小的块的分配. 这些分配向上取整为最近的 2^n 或者 16 bytes 中更大的一个. 然后它们被分配进入一个专门用于这种
+   size 分配的页里面.
+   第二种适用于大于 1kb 块的分配. 分配时候向上取整为最近的页数目, 然后从 page allocator 分配连续的若干页.
+
+   当 block 被 free 时候, 里面的值被设置为 0xcc, 方便 debug.
+
+   Block allocator 无法在 interrupt context 中执行.
+   + Function: void *malloc(size_t size)
+     从 kernel pool 中分配 size 大小的块内存. 如果内存不够或者 size 为 0, 返回 NULL pointer.
+   + Function: void *calloc(size_t a, size_t b)
+     从 kernel pool 中分配至少 a*b 个字节长的块. Block 的值初始化为 0. 如果内存不够, 或者 a,b 任意一个为 0, 返回 NULL pointer.
+   + Function: void *realloc(void *block, size_t new_size)
+     尝试调整 block 到 new_size 大小, 可能会在 process 里移动. 成功的放回 new block, old block 无法再被 accessed; 失败的话
+     返回一个 null pointer, 同时 old block 依然 valid.
+   + Function: void free(void *block)
+     Free block, block 必须由 malloc(), calloc()或者 realloc()申请同时未被 freed.
 
 * Virtual Address
+  一个 32 位虚拟地址可以划分成 20 位 page number 和 12 位 page offset.
+ 	
+  31               12 11        0
+  +-------------------+-----------+
+  |    Page Number    |   Offset  |
+  +-------------------+-----------+
+  Virtual Address
+
+  "threads/vaddr.h"定义了用于虚拟地址的函数和 macros.
+  + Macro: PGSHIFT
+  + Macro: PGBITS
+    分别是,位索引(0)和虚拟地址 offset 中的位的数目.
+  + Macro: PGMASK
+  + Macro: PGSIZE
+    页大小.
+  + Function: unsigned pg_ofs(const void *va)
+    提取和返回 va 中的 page offset
+  + Function: uintptr_t pg_no(const void *va)
+    提取和返回 va 中的 page number
+  + Function: void *pg_round_down(const void *va)
+    返回 va 所在的虚拟页的开始地址.
+  + Function: void *pg_round_up(const void *va)
+    返回 va 向上取整的最近页边界
+    
+  虚拟内存在 Pintos 中分为两 regions, user virtual momory 和 kernel virtual memory. 它们两者的边界是 PHYS_BASE.
+
+  + Macro: PHYS_BASE
+    kernel virtual memory 的基地址. 默认是 0xc0000000(3GB), 范围是[PHYS_BASE, 4GB].
+    user virtual memory 范围是[0, PHYS_BASE)
+  + Function: bool is_user_vaddr(const void *va)
+  + Function: bool is_kernel_vaddr(const void *va)
+    返回 va 是否 user 或者 kernel 的 virtual address.
+
+  x86 没有提供办法直接访问 physical address, 但这对 OS kernel 来说却是必须的功能.
+  Pintos 把内核的虚拟内存一一 mapping 到物理内存上.
+  va: k  ==>  pa: k - PHYS_BASE, 也就是内核虚拟地址减去 PHYS_BASE 就能得到物理地址.
+
+  "threads/vaddr.h"提供一对函数来做变换.
+  + Function: void *ptov(uintptr_t pa)
+  + Function: uintptr_t vtop(void *va)
+
 
 
 * Page Table
